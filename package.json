@@ -1,10 +1,11 @@
 {
-  "name": "@tryforge/forge.db",
+  "name": "@nationdex/db",
   "version": "2.1.1",
   "description": "Easy to use database for ForgeScript.",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "scripts": {
+    "build": "tsc",
     "docgen": "tsc && typedoc src/index.ts && node dist/docgen",
     "commit": "npm run docgen && node dist/commit",
     "format": "biome format --write ./src",
@@ -45,12 +46,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tryforge/ForgeDB.git"
+    "url": "git+https://github.com/nationdex/db.git"
   },
   "bugs": {
-    "url": "https://github.com/tryforge/ForgeDB/issues"
+    "url": "https://github.com/nationdex/db/issues"
   },
-  "homepage": "https://github.com/tryforge/ForgeDB#readme",
+  "homepage": "https://github.com/nationdex/db#readme",
   "engines": {
     "node": ">=16.11.0"
   },

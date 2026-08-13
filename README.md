@@ -2,7 +2,7 @@
 <h1 align="center">ForgeDB</h1><p align="center">An advanced DataBase extension for ForgeScript powered apps.</p>
 
 <p align="center">
-<a href="https://github.com/tryforge/ForgeDB/"><img src="https://img.shields.io/github/package-json/v/tryforge/ForgeDB/main?label=@tryforge/forge.db&color=5c16d4" alt="@tryforge/forge.db"></a>
+<a href="https://github.com/nationdex/db/"><img src="https://img.shields.io/github/package-json/v/nationdex/db/main?label=@nationdex/db&color=5c16d4" alt="@nationdex/db"></a>
 <a href="https://github.com/tryforge/ForgeScript/"><img src="https://img.shields.io/github/package-json/v/tryforge/ForgeScript/main?label=@tryforge/forgescript&color=5c16d4" alt="@tryforge/forgescript"></a>
 <a href="https://discord.gg/hcJgjzPvqb"><img src="https://img.shields.io/discord/739934735387721768?logo=discord" alt="Discord"></a>
 </p>
@@ -13,7 +13,7 @@
    - [MongoDB installation](#mongodb-installation)
    - [Other installation](#other-installation)
 3. [Events](#events)
-4. [Updating](https://github.com/tryforge/ForgeDB/blob/main/guides/how-to-update.md)
+4. [Updating](https://github.com/nationdex/db/blob/main/guides/how-to-update.md)
 5. [Documentation](https://docs.botforge.org/p/ForgeDB/)
 6. [Credits](#credits)
 <br>
@@ -22,11 +22,11 @@
 
 1. Run the following command to install the required `npm packages`:
 ```bash
-npm i @tryforge/forge.db sqlite3
+npm i @nationdex/db sqlite3
 ```
 2. Now, in your client initialization:
 ```js
-const { ForgeDB } = require("@tryforge/forge.db")
+const { ForgeDB } = require("@nationdex/db")
 
 /* I'm assuming that the client can be an app or anything else */
 const client = new ForgeClient({
@@ -42,11 +42,11 @@ Congratulations, you have successfully connected your client to a local database
 
 1. Run the following command to install the required `npm packages`
 ```bash
-npm i @tryforge/forge.db mongodb
+npm i @nationdex/db mongodb
 ```
 2. Now, in your client initialization:
 ```js
-const { ForgeDB } = require("@tryforge/forge.db")
+const { ForgeDB } = require("@nationdex/db")
 
 // I'm assuming that the client, can be an app or anything else
 const client = new ForgeClient({
@@ -66,7 +66,7 @@ Congratulations, you have successfully connected your client to a MongoDB databa
 
 1. You have to first install ForgeDB, so you just run this command in your terminal:
 ```bash
-npm i @tryforge/forge.db
+npm i @nationdex/db
 ```
 2. Now that you've installed ForgeDB, you'll now have to install the DB package you want to use. Here are the ones ForgeDB currently supports:
     - **Better Sqlite3**
@@ -89,7 +89,7 @@ npm i @tryforge/forge.db
     ```
 3. Now that you have installed your preferred DB package, now you have to connect it with ForgeDB and ForgeScript:
 ```js
-const { ForgeDB } = require("@tryforge/forge.db")
+const { ForgeDB } = require("@nationdex/db")
 
 // I'm assuming that the client, can be an app or anything else
 const client = new ForgeClient({
@@ -118,7 +118,7 @@ Congratulations, you have now successfully connected your DB with ForgeDB and yo
 - How to use them?
  > Now when you finish configuring your database, you will have to head over to main file of your client and you will have to type this:
 ```js
-const { ForgeDB } = require("@tryforge/forge.db")
+const { ForgeDB } = require("@nationdex/db")
 
 const db = new ForgeDB({
     ...options? //The options you have for ForgeDB if you have any

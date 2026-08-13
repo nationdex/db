@@ -1,1 +1,1 @@
-{"version":3,"file":"deleteRecords.d.ts","sourceRoot":"","sources":["../../../src/functions/advanced/deleteRecords.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAA;AAC/D,OAAO,EAAwB,YAAY,EAAE,MAAM,YAAY,CAAA;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAG/D,wBA4DE"}
+{"version":3,"file":"deleteRecords.d.ts","sourceRoot":"","sources":["../../../src/functions/advanced/deleteRecords.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAA;AAE/D,OAAO,EAA6B,YAAY,EAAE,MAAM,YAAY,CAAA;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAEpE,wBA4DE"}

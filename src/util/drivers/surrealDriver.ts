@@ -48,6 +48,19 @@ interface SurrealModule {
 
 let surrealModule: SurrealModule | null = null
 
+/**
+ * Native ESM dynamic import helper.
+ *
+ * TypeScript's CommonJS emit turns `await import("...")` into a `require()`
+ * call, which fails for ESM-only packages such as `@surrealdb/node`. Using
+ * `new Function` keeps the runtime `import()` intact so CJS consumers can
+ * load the optional embedded-engine binary.
+ */
+function importESM(specifier: string): Promise<unknown> {
+    // eslint-disable-next-line no-new-func
+    return new Function("specifier", "return import(specifier)")(specifier) as Promise<unknown>
+}
+
 function loadSurrealSDK(): SurrealModule {
     if (surrealModule) return surrealModule
     try {
@@ -202,9 +215,8 @@ export class SurrealDriver implements IDBDriver {
             // Dynamic import() works from CJS at runtime in Node.js 14+.
             let createNodeEngines: ((options?: Record<string, unknown>) => Record<string, unknown>) | null = null
             try {
-                // @ts-expect-error — @surrealdb/node is an optional ESM-only package.
-                // It may not be installed, and TS cannot resolve its types.
-                const nodeModule = (await import("@surrealdb/node")) as SurrealNodeModule
+                // @surrealdb/node is an optional ESM-only package; load it dynamically.
+                const nodeModule = (await importESM("@surrealdb/node")) as SurrealNodeModule
                 createNodeEngines = nodeModule.createNodeEngines
             } catch {
                 throw new Error("Embedded SurrealDB engine (`@surrealdb/node`) is not installed. " + "Install it with:  npm install @surrealdb/node")

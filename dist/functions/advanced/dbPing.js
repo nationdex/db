@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const node_perf_hooks_1 = require("node:perf_hooks");
 const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-const perf_hooks_1 = require("perf_hooks");
 exports.default = new forgescript_1.NativeFunction({
     name: "$dbPing",
     aliases: ["$dbLatency"],
@@ -21,9 +21,9 @@ exports.default = new forgescript_1.NativeFunction({
         },
     ],
     async execute(_ctx, [full]) {
-        const start = perf_hooks_1.performance.now();
-        await util_1.DataBase.query("SELECT 1");
-        const end = perf_hooks_1.performance.now();
+        const start = node_perf_hooks_1.performance.now();
+        await util_1.DataBase.ping();
+        const end = node_perf_hooks_1.performance.now();
         let res = end - start;
         if (!full)
             res = Number(res.toFixed(2));

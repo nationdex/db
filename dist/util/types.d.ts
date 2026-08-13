@@ -1,4 +1,4 @@
-import { IDBEvents } from "../structures";
+import type { IDBEvents } from "../structures";
 export declare enum SortType {
     asc = 0,
     desc = 1
@@ -34,6 +34,16 @@ export type IDataBaseOptions = ({
 } | {
     type: "better-sqlite3" | "sqlite";
     folder?: string;
+} | {
+    type: "surrealdb";
+    url?: string;
+    username?: string;
+    password?: string;
+    token?: string;
+    folder?: string;
+    engine?: "surrealkv" | "rocksdb" | "mem";
+    namespace?: string;
+    database?: string;
 }) & {
     events?: Array<keyof IDBEvents>;
 };

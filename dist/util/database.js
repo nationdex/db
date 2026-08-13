@@ -1,110 +1,108 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataBase = void 0;
-const types_1 = require("./types");
-require("reflect-metadata");
-const databaseManager_1 = require("./databaseManager");
+const drivers_1 = require("./drivers");
 function isGuildData(data) {
     return ["member", "channel", "role"].includes(data.type);
 }
-class DataBase extends databaseManager_1.DataBaseManager {
-    emitter;
-    database = "forge.db";
-    entityManager = {
-        sqlite: [types_1.SQLiteRecord, types_1.Cooldown],
-        mongodb: [types_1.MongoRecord, types_1.MongoCooldown],
-        mysql: [types_1.MySQLRecord, types_1.Cooldown],
-        postgres: [types_1.PostgreSQLRecord, types_1.Cooldown],
-    };
-    static entities;
-    db;
-    static db;
+/**
+ * Static facade for all database operations.
+ *
+ * This class delegates every I/O call to an `IDBDriver` instance selected
+ * at construction time based on `IDataBaseOptions.type`. The available
+ * drivers are:
+ *
+ * - `TypeORMDriver` — SQLite, MySQL, PostgreSQL, MongoDB (via TypeORM)
+ * - `SurrealDriver` — SurrealDB (via the `surrealdb` SDK, remote or embedded)
+ *
+ * All 70+ function files in `src/functions/` call `DataBase.*` statics
+ * exclusively, so the driver swap is completely transparent to them.
+ *
+ * The pure helper functions `make_intetifier` and `make_cdIdentifier`
+ * remain on this class — they don't touch the database and are shared
+ * by every driver.
+ */
+class DataBase {
+    /**
+     * The active driver instance.
+     *
+     * Set once during `init()` and used by all static delegate methods.
+     */
+    static driver;
+    /**
+     * The configured backend type.
+     *
+     * Preserved for backwards compatibility — some external code may
+     * inspect `DataBase.type` to determine which database is in use.
+     */
+    static type;
+    /** Emitter instance, stored for `init()` to fire the `connect` event. */
     static emitter;
     constructor(emitter, options) {
-        super(options ?? { type: "sqlite" });
-        this.emitter = emitter;
-        this.type = options?.type || "sqlite";
-        this.db = this.getDB();
-        DataBase.entities = {
-            Record: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][0],
-            Cooldown: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][1],
-        };
+        const opts = options ?? { type: "sqlite" };
+        DataBase.type = opts.type;
+        DataBase.emitter = emitter;
+        // The driver receives the emitter so it can emit events.
+        DataBase.driver = (0, drivers_1.createDriver)(opts, emitter);
     }
+    /** Initialise the underlying driver connection and emit `connect`. */
     async init() {
-        DataBase.emitter = this.emitter;
-        DataBase.db = await this.db;
+        await DataBase.driver.init();
         DataBase.emitter.emit("connect");
     }
+    /* ------------------------------------------------------------------ *
+     * Pure helpers (no I/O) — shared by all drivers
+     * ------------------------------------------------------------------ */
     static make_intetifier(data) {
-        return `${data.type}_${data.name}_${isGuildData(data) ? data.guildId + "_" : ""}${data.id}`;
-    }
-    static async set(data) {
-        const newData = new this.entities.Record();
-        newData.identifier = this.make_intetifier(data);
-        newData.name = data.name;
-        newData.id = data.id;
-        newData.type = data.type;
-        newData.value = data.value;
-        if (isGuildData(data))
-            newData.guildId = data.guildId;
-        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) }));
-        if (oldData && this.type == "mongodb") {
-            this.emitter.emit("variableUpdate", { newData, oldData });
-            this.db.getRepository(this.entities.Record).update(oldData, newData);
-        }
-        else {
-            oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData });
-            await this.db.getRepository(this.entities.Record).save(newData);
-        }
-    }
-    static async get(data) {
-        const identifier = data.identifier ?? this.make_intetifier(data);
-        return await this.db.getRepository(this.entities.Record).findOneBy({ identifier });
-    }
-    static async getAll() {
-        return await this.db.getRepository(this.entities.Record).find();
-    }
-    static async find(data) {
-        return await this.db.getRepository(this.entities.Record).find({
-            where: { ...data },
-        });
-    }
-    static async delete(data) {
-        const identifier = data.identifier ?? this.make_intetifier(data);
-        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) });
-        return await this.db.getRepository(this.entities.Record).delete({ identifier });
-    }
-    static async wipe() {
-        return await this.db.getRepository(this.entities.Record).clear();
-    }
-    static async cdWipe() {
-        return await this.db.getRepository(this.entities.Cooldown).clear();
+        return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`;
     }
     static make_cdIdentifier(data) {
-        return `${data.name}${data.id ? "_" + data.id : ""}`;
+        return `${data.name}${data.id ? `_${data.id}` : ""}`;
+    }
+    /* ------------------------------------------------------------------ *
+     * Record CRUD — delegates to driver
+     * ------------------------------------------------------------------ */
+    static async set(data) {
+        await DataBase.driver.set(data);
+    }
+    static async get(data) {
+        return await DataBase.driver.get(data);
+    }
+    static async getAll() {
+        return await DataBase.driver.getAll();
+    }
+    static async find(data) {
+        return await DataBase.driver.find(data);
+    }
+    static async delete(data) {
+        await DataBase.driver.delete(data);
+    }
+    static async wipe() {
+        await DataBase.driver.wipe();
+    }
+    /* ------------------------------------------------------------------ *
+     * Cooldown CRUD — delegates to driver
+     * ------------------------------------------------------------------ */
+    static async cdWipe() {
+        await DataBase.driver.cdWipe();
     }
     static async cdAdd(data) {
-        const cd = new this.entities.Cooldown();
-        cd.identifier = this.make_cdIdentifier(data);
-        cd.name = data.name;
-        cd.id = data.id;
-        cd.startedAt = Date.now();
-        cd.duration = data.duration;
-        const oldCD = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier: this.make_cdIdentifier(data) });
-        if (oldCD && this.type == "mongodb")
-            return await this.db.getRepository(this.entities.Cooldown).update(oldCD, cd);
-        else
-            return await this.db.getRepository(this.entities.Cooldown).save(cd);
+        await DataBase.driver.cdAdd(data);
     }
     static async cdDelete(identifier) {
-        await this.db.getRepository(this.entities.Cooldown).delete({ identifier });
+        await DataBase.driver.cdDelete(identifier);
     }
     static async cdTimeLeft(identifier) {
-        const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier });
-        return data ? { ...data, left: Math.max(data.duration - (Date.now() - data.startedAt), 0) } : { left: 0 };
+        return await DataBase.driver.cdTimeLeft(identifier);
     }
+    /* ------------------------------------------------------------------ *
+     * Raw query + ping — delegates to driver
+     * ------------------------------------------------------------------ */
     static async query(query) {
-        return await this.db.query(query);
+        return await DataBase.driver.query(query);
+    }
+    static async ping() {
+        return await DataBase.driver.ping();
     }
 }
 exports.DataBase = DataBase;

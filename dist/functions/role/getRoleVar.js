@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const forgescript_1 = require("@tryforge/forgescript");
-const util_1 = require("../../util");
 const __1 = require("../..");
+const util_1 = require("../../util");
 exports.default = new forgescript_1.NativeFunction({
     name: "$getRoleVar",
     version: "2.0.0",

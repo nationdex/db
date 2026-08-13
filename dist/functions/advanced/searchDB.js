@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const forgescript_1 = require("@tryforge/forgescript");
-const util_1 = require("../../util");
 const typeorm_1 = require("typeorm");
+const util_1 = require("../../util");
 exports.default = new forgescript_1.NativeFunction({
     name: "$searchDB",
     aliases: ["$searchRecords", "$searchDataBase"],

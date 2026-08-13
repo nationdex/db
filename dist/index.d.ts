@@ -1,7 +1,7 @@
-import { ForgeClient, ForgeExtension, IExtendedCompilationResult } from "@tryforge/forgescript";
-import { IDataBaseOptions } from "./util";
-import { IDBEvents } from "./structures";
+import { type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@tryforge/forgescript";
 import { TypedEmitter } from "tiny-typed-emitter";
+import { type IDBEvents } from "./structures";
+import { type IDataBaseOptions } from "./util";
 export type TransformEvents<T> = {
     [P in keyof T]: T[P] extends any[] ? (...args: T[P]) => any : never;
 };
@@ -19,5 +19,5 @@ export declare class ForgeDB extends ForgeExtension {
     static variables(rec: Record<PropertyKey, unknown>): void;
     private static compileVariables;
 }
-export { DataBaseManager } from './util';
+export { DataBaseManager } from "./util";
 //# sourceMappingURL=index.d.ts.map
