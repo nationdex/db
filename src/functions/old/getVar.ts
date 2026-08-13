@@ -1,4 +1,4 @@
-import { ArgType, IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
+import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
 import { ForgeDB } from "../.."
 import { DataBase } from "../../util"
 

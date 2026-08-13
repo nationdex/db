@@ -1,5 +1,5 @@
-import { Entity, Column, PrimaryColumn, ObjectIdColumn } from "typeorm"
-import { IDBEvents } from "../structures"
+import { Column, Entity, ObjectIdColumn, PrimaryColumn } from "typeorm"
+import type { IDBEvents } from "../structures"
 
 export enum SortType {
     asc,
@@ -42,6 +42,17 @@ export type IDataBaseOptions = (
     | {
           type: "better-sqlite3" | "sqlite"
           folder?: string
+      }
+    | {
+          type: "surrealdb"
+          url?: string
+          username?: string
+          password?: string
+          token?: string
+          folder?: string
+          engine?: "surrealkv" | "rocksdb" | "mem"
+          namespace?: string
+          database?: string
       }
 ) & { events?: Array<keyof IDBEvents> }
 

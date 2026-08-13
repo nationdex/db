@@ -7,7 +7,9 @@
   "scripts": {
     "docgen": "tsc && typedoc src/index.ts && node dist/docgen",
     "commit": "npm run docgen && node dist/commit",
-    "prettier": "prettier --write ./src/**/*",
+    "format": "biome format --write ./src",
+    "lint": "biome lint --write ./src",
+    "check": "biome check ./src",
     "test": "tsc && node dist/__tests__/"
   },
   "keywords": [
@@ -22,7 +24,9 @@
     "efficient",
     "bdscript",
     "database",
-    "db"
+    "db",
+    "surrealdb",
+    "surrealkv"
   ],
   "author": "aggelos007",
   "license": "GPL-3.0",
@@ -31,7 +35,7 @@
     "@types/node": "^20.5.7",
     "discord.js": "^14.23.2",
     "mongodb": "^6.19.0",
-    "prettier": "^3.5.3",
+    "@biomejs/biome": "^2.5.8",
     "sqlite3": "^5.1.7",
     "typedoc": "^0.25.0",
     "typescript": "^5.2.2"
@@ -53,5 +57,9 @@
   "dependencies": {
     "tiny-typed-emitter": "^2.1.0",
     "typeorm": "^0.3.26"
+  },
+  "optionalDependencies": {
+    "surrealdb": "^2.0.8",
+    "@surrealdb/node": "^2.0.0"
   }
 }

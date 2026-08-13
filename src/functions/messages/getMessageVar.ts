@@ -1,6 +1,6 @@
-import { ArgType, IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
-import { DataBase } from "../../util"
+import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
 import { ForgeDB } from "../.."
+import { DataBase } from "../../util"
 
 export default new NativeFunction({
     name: "$getMessageVar",

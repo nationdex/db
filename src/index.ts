@@ -1,7 +1,7 @@
-import { Compiler, EventManager, ForgeClient, ForgeExtension, IExtendedCompilationResult } from "@tryforge/forgescript"
-import { DataBase, IDataBaseOptions } from "./util"
-import { DBCommandManager, IDBEvents } from "./structures"
+import { Compiler, EventManager, type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@tryforge/forgescript"
 import { TypedEmitter } from "tiny-typed-emitter"
+import { DBCommandManager, type IDBEvents } from "./structures"
+import { DataBase, type IDataBaseOptions } from "./util"
 
 export type TransformEvents<T> = {
     [P in keyof T]: T[P] extends any[] ? (...args: T[P]) => any : never
@@ -24,14 +24,13 @@ export class ForgeDB extends ForgeExtension {
     init(client: ForgeClient): void {
         this.commands = new DBCommandManager(client)
 
-        EventManager.load('ForgeDBEvents', __dirname + '/events')
-        this.load(__dirname + "/functions")
+        EventManager.load("ForgeDBEvents", `${__dirname}/events`)
+        this.load(`${__dirname}/functions`)
 
         new DataBase(this.emitter, this.options).init()
         client.db = DataBase
 
-        if (this.options?.events?.length)
-            client.events.load("ForgeDBEvents", this.options.events)
+        if (this.options?.events?.length) client.events.load("ForgeDBEvents", this.options.events)
     }
 
     public variables(rec: Record<PropertyKey, unknown>) {
@@ -54,4 +53,4 @@ export class ForgeDB extends ForgeExtension {
         return obj
     }
 }
-export { DataBaseManager } from './util'
+export { DataBaseManager } from "./util"

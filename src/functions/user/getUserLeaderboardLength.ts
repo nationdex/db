@@ -33,7 +33,7 @@ export default new NativeFunction({
     brackets: true,
     async execute(_ctx, [name, length, decimals]) {
         const data = await DataBase.find({ name, type: "user" })
-        data.sort((a, b) => parseInt(a.value) - parseInt(b.value))
+        data.sort((a, b) => parseInt(a.value, 10) - parseInt(b.value, 10))
         const number = data.length / (length ?? 1)
         return this.success(decimals ? number : number % 1 ? Math.floor(number) + 1 : number)
     },

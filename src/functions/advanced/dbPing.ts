@@ -1,6 +1,6 @@
+import { performance } from "node:perf_hooks"
 import { ArgType, NativeFunction } from "@tryforge/forgescript"
 import { DataBase } from "../../util"
-import { performance } from "perf_hooks"
 
 export default new NativeFunction({
     name: "$dbPing",
@@ -21,7 +21,7 @@ export default new NativeFunction({
     ],
     async execute(_ctx, [full]) {
         const start = performance.now()
-        await DataBase.query("SELECT 1")
+        await DataBase.ping()
         const end = performance.now()
         let res = end - start
         if (!full) res = Number(res.toFixed(2))

@@ -1,5 +1,5 @@
 import { ArgType, NativeFunction } from "@tryforge/forgescript"
-import { BaseGuildTextChannel } from "discord.js"
+import type { BaseGuildTextChannel } from "discord.js"
 import { DataBase } from "../../util"
 
 export default new NativeFunction({

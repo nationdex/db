@@ -1,4 +1,4 @@
-import { ArgType, IExtendedCompiledFunctionField, NativeFunction, Return } from "@tryforge/forgescript"
+import { ArgType, type IExtendedCompiledFunctionField, NativeFunction, type Return } from "@tryforge/forgescript"
 import { DataBase, SortType } from "../../util"
 
 export default new NativeFunction({
@@ -94,7 +94,7 @@ export default new NativeFunction({
         const limit = Number(maxV.value) || 10
         const pag = Number(pageV.value) || 1
 
-        const elements = new Array<string>()
+        const elements: string[] = []
         const rows = await DataBase.find({ name: nameV.value as string, type: "channel", guildId: (guildID.value as string) ?? ctx.guild!.id })
             .then((x) => x.sort((x, y) => (sortTypeV?.value === "asc" ? Number(x.value) - Number(y.value) : Number(y.value) - Number(x.value))))
             .then((x) => x.slice(pag * limit - limit, pag * limit))

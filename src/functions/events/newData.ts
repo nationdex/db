@@ -1,5 +1,5 @@
 import { ArgType, NativeFunction } from "@tryforge/forgescript"
-import { DataType, RecordData } from "../../util"
+import { DataType, type RecordData } from "../../util"
 
 export default new NativeFunction({
     name: "$newData",
@@ -18,7 +18,7 @@ export default new NativeFunction({
     ],
     brackets: true,
     async execute(ctx, [type]) {
-        //@ts-ignore
+        //@ts-expect-error
         return this.success((ctx.runtime.extras as { newData: RecordData }).newData[DataType[type].toString()])
     },
 })
