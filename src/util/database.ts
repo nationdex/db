@@ -99,6 +99,10 @@ export class DataBase {
         await DataBase.driver.wipe()
     }
 
+    public static async importRecords(records: RecordData[]): Promise<number> {
+        return await DataBase.driver.importRecords(records)
+    }
+
     /* ------------------------------------------------------------------ *
      * Cooldown CRUD — delegates to driver
      * ------------------------------------------------------------------ */

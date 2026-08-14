@@ -181,6 +181,7 @@ const RECORD_TABLE = "record"
 const COOLDOWN_TABLE = "cooldown"
 const DEFAULT_NAMESPACE = "forge"
 const DEFAULT_DATABASE = "forge.db"
+const IMPORT_CHUNK_SIZE = 1000
 
 export class SurrealDriver implements IDBDriver {
     private readonly emitter: DBEmitter
@@ -377,6 +378,49 @@ export class SurrealDriver implements IDBDriver {
     async wipe(): Promise<void> {
         const table = new this.Table(RECORD_TABLE)
         await this.db.delete(table)
+    }
+
+    /**
+     * Build the content object for a record (stored in SurrealDB).
+     *
+     * The `id` field is remapped to `entityId` to avoid collision with
+     * SurrealDB's reserved `id` (record ID) field.
+     */
+    private buildRecordContent(data: RecordData): Record<string, unknown> {
+        const content: Record<string, unknown> = {
+            identifier: DataBase.make_intetifier(data),
+            name: data.name,
+            entityId: data.id,
+            type: data.type,
+            value: data.value,
+        }
+        if (isGuildData(data)) content.guildId = data.guildId
+        return content
+    }
+
+    async importRecords(records: RecordData[]): Promise<number> {
+        let count = 0
+        for (let i = 0; i < records.length; i += IMPORT_CHUNK_SIZE) {
+            const chunk = records.slice(i, i + IMPORT_CHUNK_SIZE)
+            const statements: string[] = []
+            const bindings: Record<string, unknown> = {}
+
+            chunk.forEach((record, idx) => {
+                const identifier = DataBase.make_intetifier(record)
+                const idKey = `id${idx}`
+                const contentKey = `c${idx}`
+                // type::record() safely constructs the record ID from
+                // a table name + identifier string — fully parameterised,
+                // no string interpolation, immune to injection.
+                statements.push(`UPSERT type::record('${RECORD_TABLE}', $${idKey}) CONTENT $${contentKey}`)
+                bindings[idKey] = identifier
+                bindings[contentKey] = this.buildRecordContent(record)
+            })
+
+            await this.db.query(statements.join("; "), bindings)
+            count += chunk.length
+        }
+        return count
     }
 
     /* ---- Cooldown CRUD ---- */

@@ -185,6 +185,22 @@ export class TypeORMDriver implements IDBDriver {
         await this.db.getRepository(this.entities.Record).clear()
     }
 
+    async importRecords(records: RecordData[]): Promise<number> {
+        let count = 0
+        for (const data of records) {
+            const newData = new this.entities.Record()
+            newData.identifier = DataBase.make_intetifier(data)
+            newData.name = data.name!
+            newData.id = data.id!
+            newData.type = data.type!
+            newData.value = data.value!
+            if (isGuildData(data)) newData.guildId = data.guildId
+            await this.db.getRepository(this.entities.Record).save(newData)
+            count++
+        }
+        return count
+    }
+
     async cdWipe(): Promise<void> {
         await this.db.getRepository(this.entities.Cooldown).clear()
     }

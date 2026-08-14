@@ -205,13 +205,30 @@ No other changes are needed — all ForgeScript functions (`$getUserVar`, `$setU
 
 ### Data Migration
 
-Existing SQLite data is **not** automatically migrated. To migrate:
+Existing SQLite data is **not** automatically migrated. To migrate your data without losing variables:
 
-1. Export your data using `$getDB` (returns all records as JSON).
-2. Switch to SurrealDB.
-3. Re-import the data programmatically using `$setVar` / `$setUserVar` etc.
+1. **Export** — On your old bot (SQLite), run:
+   ```
+   $writeFile[dump.json;$getDB]
+   ```
+   This saves all records to `dump.json` in the same format `$setDB` expects.
 
-Alternatively, keep your existing SQLite database running while you test SurrealDB on a separate bot instance.
+2. **Switch backend** — Change your `ForgeDB` config from `sqlite` to `surrealdb`:
+   ```typescript
+   new ForgeDB({
+       type: "surrealdb",
+       folder: "./database",
+       engine: "rocksdb",
+   })
+   ```
+
+3. **Import** — On your new bot (SurrealDB), run:
+   ```
+   $setDB[$readFile[dump.json]]
+   ```
+   This bulk-imports all records in a single call. The `$setDB` function uses chunked batch inserts (1000 records per query) for scalability, so it works efficiently even with thousands of variables.
+
+> **Note:** Cooldowns are not included in `$getDB` output and will not be migrated. Since cooldowns are transient (they expire on their own), this is generally not an issue — they will simply reset on the new database.
 
 ---
 
