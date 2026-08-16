@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
+exports.default = new script_1.NativeFunction({
     name: "$memberLeaderboard",
     version: "2.0.0",
     description: "Creates a leaderboard of members for a variable",
-    output: forgescript_1.ArgType.String,
+    output: script_1.ArgType.String,
     brackets: true,
     unwrap: false,
     args: [
@@ -14,60 +14,60 @@ exports.default = new forgescript_1.NativeFunction({
             name: "name",
             description: "The name of the variable to create the leaderboard for",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: true,
         },
         {
             name: "guild ID",
             description: "The guild ID for which to retrieve the variable of members",
             rest: false,
-            type: forgescript_1.ArgType.Guild,
+            type: script_1.ArgType.Guild,
             required: false,
         },
         {
             name: "sort type",
             description: "The sort order for the leaderboard, either ascending (asc) or descending (desc)",
             rest: false,
-            type: forgescript_1.ArgType.Enum,
+            type: script_1.ArgType.Enum,
             enum: util_1.SortType,
         },
         {
             name: "max",
             description: "The maximum number of rows per page",
             rest: false,
-            type: forgescript_1.ArgType.Number,
+            type: script_1.ArgType.Number,
         },
         {
             name: "page",
             description: "The page number",
             rest: false,
-            type: forgescript_1.ArgType.Number,
+            type: script_1.ArgType.Number,
         },
         {
             name: "separator",
             description: "The separator to use for each row",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
         {
             name: "envValue",
             description: "The variable name to use for $env, retrieve the id with $env[<name>;id] and the value with $env[<name>;value]",
             rest: false,
             required: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
         {
             name: "envPosition",
             description: "The variable name to use for $env, retrieve the position with $env[<name>]",
             required: false,
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
         {
             name: "code",
             description: "Code to execute for each row. Remember to use $return, otherwise it will not return anything.",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: false,
         },
     ],

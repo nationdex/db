@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createDriver = exports.TypeORMDriver = exports.SurrealDriver = void 0;
+exports.TypeORMDriver = exports.SurrealDriver = void 0;
+exports.createDriver = createDriver;
 var surrealDriver_1 = require("./surrealDriver");
 Object.defineProperty(exports, "SurrealDriver", { enumerable: true, get: function () { return surrealDriver_1.SurrealDriver; } });
 var typeormDriver_1 = require("./typeormDriver");
@@ -24,5 +25,4 @@ function createDriver(options, emitter) {
     const { TypeORMDriver } = require("./typeormDriver");
     return new TypeORMDriver(emitter, options);
 }
-exports.createDriver = createDriver;
 //# sourceMappingURL=index.js.map

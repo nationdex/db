@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript";
+import { ArgType, NativeFunction } from "@nationdex/script";
 import { VariableType } from "../../util";
 declare const _default: NativeFunction<[{
     name: string;

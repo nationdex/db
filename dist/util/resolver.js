@@ -3,7 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resolveESM = exports.resolveModule = exports.patchBunMkdir = void 0;
+exports.patchBunMkdir = patchBunMkdir;
+exports.resolveModule = resolveModule;
+exports.resolveESM = resolveESM;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_module_1 = require("node:module");
 const node_path_1 = __importDefault(require("node:path"));
@@ -34,7 +36,6 @@ function patchBunMkdir() {
         });
     }
 }
-exports.patchBunMkdir = patchBunMkdir;
 // Automatically patch Bun on module load
 patchBunMkdir();
 /**
@@ -88,7 +89,6 @@ function resolveModule(name, customDriver) {
     catch { }
     return undefined;
 }
-exports.resolveModule = resolveModule;
 /**
  * Dynamic ESM import helper with multi-tier resolution for ESM-only packages (such as `@surrealdb/node`).
  */
@@ -109,5 +109,4 @@ async function resolveESM(name) {
     catch { }
     return undefined;
 }
-exports.resolveESM = resolveESM;
 //# sourceMappingURL=resolver.js.map

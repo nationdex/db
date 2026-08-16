@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript"
+import { ArgType, NativeFunction } from "@nationdex/script"
 import { DataBase, SortType } from "../../util"
 
 export default new NativeFunction({

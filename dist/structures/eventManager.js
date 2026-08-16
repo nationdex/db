@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DBEventHandler = void 0;
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const __1 = require("..");
-class DBEventHandler extends forgescript_1.BaseEventHandler {
+class DBEventHandler extends script_1.BaseEventHandler {
     register(client) {
         //@ts-expect-error
         client.getExtension(__1.ForgeDB, true)["emitter"].on(this.name, this.listener.bind(client));

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.prompt = void 0;
+exports.prompt = prompt;
 const node_child_process_1 = require("node:child_process");
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
@@ -15,7 +15,6 @@ async function prompt(q) {
         });
     });
 }
-exports.prompt = prompt;
 const path = "./metadata";
 if (!(0, node_fs_1.existsSync)(path))
     (0, node_fs_1.mkdirSync)(path);

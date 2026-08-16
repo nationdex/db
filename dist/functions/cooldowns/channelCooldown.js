@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
+exports.default = new script_1.NativeFunction({
     name: "$channelCooldown",
     version: "2.0.0",
     description: "Imposes a cooldown period for a command within a specific channel.",
@@ -13,27 +13,27 @@ exports.default = new forgescript_1.NativeFunction({
             name: "name",
             description: "The name of the command for which you wish to set a cooldown.",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: true,
         },
         {
             name: "duration",
             description: "The length of time the cooldown will last.",
             rest: false,
-            type: forgescript_1.ArgType.Time,
+            type: script_1.ArgType.Time,
             required: true,
         },
         {
             name: "code",
             description: "The code to execute when the cooldown is in effect.",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
         {
             name: "channel ID",
             rest: false,
             description: "The unique identifier (id) of the channel to apply the cooldown to.",
-            type: forgescript_1.ArgType.Channel,
+            type: script_1.ArgType.Channel,
             required: false,
         },
     ],

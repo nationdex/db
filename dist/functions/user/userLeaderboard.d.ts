@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript";
+import { ArgType, NativeFunction } from "@nationdex/script";
 import { SortType } from "../../util";
 declare const _default: NativeFunction<[{
     name: string;

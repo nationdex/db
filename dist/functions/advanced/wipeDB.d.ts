@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript";
-declare const _default: NativeFunction<import("@tryforge/forgescript").IArg<ArgType, boolean, boolean, import("@tryforge/forgescript").EnumLike<any>>[], false>;
+import { ArgType, NativeFunction } from "@nationdex/script";
+declare const _default: NativeFunction<import("@nationdex/script").IArg<ArgType, boolean, boolean, import("@nationdex/script").EnumLike<any>>[], false>;
 export default _default;
 //# sourceMappingURL=wipeDB.d.ts.map

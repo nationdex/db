@@ -1,21 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_perf_hooks_1 = require("node:perf_hooks");
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
+exports.default = new script_1.NativeFunction({
     name: "$dbPing",
     aliases: ["$dbLatency"],
     version: "2.0.9",
     description: "Returns the database ping.",
-    output: forgescript_1.ArgType.String,
+    output: script_1.ArgType.String,
     unwrap: true,
     brackets: false,
     args: [
         {
             name: "full",
             description: "This will return the max decimals",
-            type: forgescript_1.ArgType.Boolean,
+            type: script_1.ArgType.Boolean,
             required: false,
             rest: false,
         },

@@ -43,7 +43,7 @@ export declare class TypeORMDriver implements IDBDriver {
         left: number;
         identifier: string;
         name: string;
-        id?: string | undefined;
+        id?: string;
         startedAt: number;
         duration: number;
     } | {

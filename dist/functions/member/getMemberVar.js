@@ -1,34 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const __1 = require("../..");
 const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
+exports.default = new script_1.NativeFunction({
     name: "$getMemberVar",
     version: "2.0.0",
     description: "Retrieves the value of a variable associated with a member",
-    output: forgescript_1.ArgType.Unknown,
+    output: script_1.ArgType.Unknown,
     unwrap: true,
     args: [
         {
             name: "name",
             description: "The name of the variable to query",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: true,
         },
         {
             name: "member ID",
             description: "The member ID for which to retrieve the variable value",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: false,
         },
         {
             name: "guild ID",
             description: "The guild ID to which the member belongs",
             rest: false,
-            type: forgescript_1.ArgType.Guild,
+            type: script_1.ArgType.Guild,
             required: false,
         },
         {
@@ -36,7 +36,7 @@ exports.default = new forgescript_1.NativeFunction({
             description: "The default value to return if the identifier doesn't exist in the variable",
             rest: false,
             required: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
     ],
     brackets: true,
@@ -50,7 +50,7 @@ exports.default = new forgescript_1.NativeFunction({
                 if (typeof defData === "object" && defData !== null && "functions" in defData) {
                     const d = defData;
                     // Run
-                    const result = await forgescript_1.Interpreter.run(ctx.clone({
+                    const result = await script_1.Interpreter.run(ctx.clone({
                         data: d,
                         allowTopLevelReturn: true,
                         doNotSend: true,

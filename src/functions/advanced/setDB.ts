@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript"
+import { ArgType, NativeFunction } from "@nationdex/script"
 import type { RecordData } from "../../util"
 import { DataBase } from "../../util"
 

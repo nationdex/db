@@ -1,27 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const __1 = require("../..");
 const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
+exports.default = new script_1.NativeFunction({
     name: "$getVar",
     version: "1.0.0",
     description: "Returns an identifier's value in a variable",
-    output: forgescript_1.ArgType.Unknown,
+    output: script_1.ArgType.Unknown,
     unwrap: true,
     args: [
         {
             name: "name",
             description: "The name of the variable",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: true,
         },
         {
             name: "id",
             description: "The identifier of the value (a user, guild, channel, message, etc)",
             rest: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
             required: true,
         },
         {
@@ -29,7 +29,7 @@ exports.default = new forgescript_1.NativeFunction({
             description: "The default value if the identifier doesn't exist in the variable",
             rest: false,
             required: false,
-            type: forgescript_1.ArgType.String,
+            type: script_1.ArgType.String,
         },
     ],
     brackets: true,
@@ -47,7 +47,7 @@ exports.default = new forgescript_1.NativeFunction({
                 if ("functions" in defData) {
                     const d = defData;
                     // Run
-                    const result = await forgescript_1.Interpreter.run(ctx.clone({
+                    const result = await script_1.Interpreter.run(ctx.clone({
                         data: d,
                         doNotSend: true,
                         redirectErrorsToConsole: true,

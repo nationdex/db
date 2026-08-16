@@ -1,4 +1,4 @@
-import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
+import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@nationdex/script"
 import type { BaseGuildTextChannel } from "discord.js"
 import { ForgeDB } from "../.."
 import { DataBase } from "../../util"

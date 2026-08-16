@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataBaseManager = exports.ForgeDB = void 0;
-const forgescript_1 = require("@tryforge/forgescript");
+const script_1 = require("@nationdex/script");
 const tiny_typed_emitter_1 = require("tiny-typed-emitter");
 const structures_1 = require("./structures");
 const util_1 = require("./util");
-class ForgeDB extends forgescript_1.ForgeExtension {
+class ForgeDB extends script_1.ForgeExtension {
     options;
     static defaults;
     name = "forge.db";
@@ -19,7 +19,7 @@ class ForgeDB extends forgescript_1.ForgeExtension {
     }
     init(client) {
         this.commands = new structures_1.DBCommandManager(client);
-        forgescript_1.EventManager.load("ForgeDBEvents", `${__dirname}/events`);
+        script_1.EventManager.load("ForgeDBEvents", `${__dirname}/events`);
         this.load(`${__dirname}/functions`);
         new util_1.DataBase(this.emitter, this.options).init();
         client.db = util_1.DataBase;
@@ -36,7 +36,7 @@ class ForgeDB extends forgescript_1.ForgeExtension {
         const obj = {};
         for (const [key, value] of Object.entries(rec)) {
             if (typeof value === "string") {
-                obj[key] = forgescript_1.Compiler.compile(value);
+                obj[key] = script_1.Compiler.compile(value);
             }
             else {
                 obj[key] = value;

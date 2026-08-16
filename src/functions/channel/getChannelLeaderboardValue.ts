@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@tryforge/forgescript"
+import { ArgType, NativeFunction } from "@nationdex/script"
 import type { BaseGuildTextChannel } from "discord.js"
 import { DataBase, SortType } from "../../util"
 

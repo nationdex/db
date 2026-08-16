@@ -1,4 +1,4 @@
-import { BaseCommandManager } from "@tryforge/forgescript";
+import { BaseCommandManager } from "@nationdex/script";
 import type { IDBEvents } from "./eventManager";
 export declare class DBCommandManager extends BaseCommandManager<keyof IDBEvents> {
     handlerName: string;
