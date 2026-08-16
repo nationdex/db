@@ -45,6 +45,14 @@ export interface IDBDriver {
     delete(data: RecordData): Promise<void>;
     /** Remove every record from the `record` table. */
     wipe(): Promise<void>;
+    /**
+     * Bulk-import records (upsert semantics).
+     *
+     * Used by the `$setDB` function for database migration.
+     * Does NOT emit `variableCreate` / `variableUpdate` events —
+     * bulk import is a batch operation, not individual user actions.
+     */
+    importRecords(records: RecordData[]): Promise<number>;
     /** Remove every record from the `cooldown` table. */
     cdWipe(): Promise<void>;
     /** Insert or update a cooldown entry (upsert semantics). */

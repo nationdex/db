@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SurrealDriver = void 0;
 const database_1 = require("../database");
+const resolver_1 = require("../resolver");
+(0, resolver_1.patchBunMkdir)();
 let surrealModule = null;
 /**
  * Native ESM dynamic import helper.
@@ -15,18 +17,19 @@ function importESM(specifier) {
     // eslint-disable-next-line no-new-func
     return new Function("specifier", "return import(specifier)")(specifier);
 }
-function loadSurrealSDK() {
+function loadSurrealSDK(customDriver) {
     if (surrealModule)
         return surrealModule;
-    try {
-        // `surrealdb` ships CJS exports — safe to require from CommonJS.
-        const mod = require("surrealdb");
+    const mod = (0, resolver_1.resolveModule)("surrealdb", customDriver);
+    if (mod) {
         surrealModule = mod;
         return mod;
     }
-    catch {
-        throw new Error(`SurrealDB SDK (\`surrealdb\`) is not installed. Install it with:  npm install surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}`);
-    }
+    throw new Error(`SurrealDB SDK (\`surrealdb\`) is not installed or failed to load.\n` +
+        `Install it with:\n` +
+        `  • pnpm:  pnpm add surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}\n` +
+        `  • bun:   bun add surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}\n` +
+        `  • npm:   npm i surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}`);
 }
 // Holder for the user's options so `needsEmbedded()` can be called
 // before the constructor finishes initialising.
@@ -87,6 +90,7 @@ const RECORD_TABLE = "record";
 const COOLDOWN_TABLE = "cooldown";
 const DEFAULT_NAMESPACE = "forge";
 const DEFAULT_DATABASE = "forge.db";
+const IMPORT_CHUNK_SIZE = 1000;
 class SurrealDriver {
     emitter;
     options;
@@ -103,7 +107,7 @@ class SurrealDriver {
         pendingOptions = options;
     }
     async init() {
-        const sdk = loadSurrealSDK();
+        const sdk = loadSurrealSDK(this.options.driver);
         this.Surreal = sdk.Surreal;
         this.RecordId = sdk.RecordId;
         this.Table = sdk.Table;
@@ -112,18 +116,20 @@ class SurrealDriver {
         const isEmbedded = !this.options.url;
         if (isEmbedded) {
             // Embedded engines require @surrealdb/node (ESM-only, native binary).
-            // Dynamic import() works from CJS at runtime in Node.js 14+.
             let createNodeEngines = null;
             try {
                 // @surrealdb/node is an optional ESM-only package; load it dynamically.
-                const nodeModule = (await importESM("@surrealdb/node"));
-                createNodeEngines = nodeModule.createNodeEngines;
+                const nodeModule = (await (0, resolver_1.resolveESM)("@surrealdb/node")) ?? (await importESM("@surrealdb/node"));
+                createNodeEngines = nodeModule?.createNodeEngines ?? null;
             }
-            catch {
-                throw new Error("Embedded SurrealDB engine (`@surrealdb/node`) is not installed. " + "Install it with:  npm install @surrealdb/node");
+            catch { }
+            if (!createNodeEngines) {
+                throw new Error("Embedded SurrealDB engine (`@surrealdb/node`) is not installed or failed to load.\n" +
+                    "Install it with:\n" +
+                    "  • pnpm:  pnpm add @surrealdb/node\n" +
+                    "  • bun:   bun add @surrealdb/node\n" +
+                    "  • npm:   npm i @surrealdb/node");
             }
-            // After the try/catch above, createNodeEngines is guaranteed non-null
-            // because the catch branch throws. TS can't track this, so we assert.
             const nodeEngines = createNodeEngines;
             const engine = this.options.engine ?? "surrealkv";
             const folder = this.options.folder ?? "database";
@@ -259,6 +265,46 @@ class SurrealDriver {
     async wipe() {
         const table = new this.Table(RECORD_TABLE);
         await this.db.delete(table);
+    }
+    /**
+     * Build the content object for a record (stored in SurrealDB).
+     *
+     * The `id` field is remapped to `entityId` to avoid collision with
+     * SurrealDB's reserved `id` (record ID) field.
+     */
+    buildRecordContent(data) {
+        const content = {
+            identifier: database_1.DataBase.make_intetifier(data),
+            name: data.name,
+            entityId: data.id,
+            type: data.type,
+            value: data.value,
+        };
+        if (isGuildData(data))
+            content.guildId = data.guildId;
+        return content;
+    }
+    async importRecords(records) {
+        let count = 0;
+        for (let i = 0; i < records.length; i += IMPORT_CHUNK_SIZE) {
+            const chunk = records.slice(i, i + IMPORT_CHUNK_SIZE);
+            const statements = [];
+            const bindings = {};
+            chunk.forEach((record, idx) => {
+                const identifier = database_1.DataBase.make_intetifier(record);
+                const idKey = `id${idx}`;
+                const contentKey = `c${idx}`;
+                // type::record() safely constructs the record ID from
+                // a table name + identifier string — fully parameterised,
+                // no string interpolation, immune to injection.
+                statements.push(`UPSERT type::record('${RECORD_TABLE}', $${idKey}) CONTENT $${contentKey}`);
+                bindings[idKey] = identifier;
+                bindings[contentKey] = this.buildRecordContent(record);
+            });
+            await this.db.query(statements.join("; "), bindings);
+            count += chunk.length;
+        }
+        return count;
     }
     /* ---- Cooldown CRUD ---- */
     async cdWipe() {

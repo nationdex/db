@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import { type IDataBaseOptions, type RecordData, SQLiteRecord } from "../types";
 import type { DBEmitter, IDBDriver } from "./driver";
 /**
@@ -32,6 +31,7 @@ export declare class TypeORMDriver implements IDBDriver {
     find(data?: RecordData): Promise<SQLiteRecord[]>;
     delete(data: RecordData): Promise<void>;
     wipe(): Promise<void>;
+    importRecords(records: RecordData[]): Promise<number>;
     cdWipe(): Promise<void>;
     cdAdd(data: {
         name: string;

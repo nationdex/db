@@ -49,6 +49,7 @@ export declare class DataBase {
     static find(data?: RecordData): Promise<SQLiteRecord[]>;
     static delete(data: RecordData): Promise<void>;
     static wipe(): Promise<void>;
+    static importRecords(records: RecordData[]): Promise<number>;
     static cdWipe(): Promise<void>;
     static cdAdd(data: {
         name: string;

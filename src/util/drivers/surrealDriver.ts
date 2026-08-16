@@ -1,6 +1,9 @@
 import { DataBase } from "../database"
+import { patchBunMkdir, resolveESM, resolveModule } from "../resolver"
 import type { CooldownData, GuildData, RecordData, SQLiteRecord } from "../types"
 import type { DBEmitter, IDBDriver } from "./driver"
+
+patchBunMkdir()
 
 /* ------------------------------------------------------------------ *
  * Type stub for the optional @surrealdb/node package
@@ -61,16 +64,20 @@ function importESM(specifier: string): Promise<unknown> {
     return new Function("specifier", "return import(specifier)")(specifier) as Promise<unknown>
 }
 
-function loadSurrealSDK(): SurrealModule {
+function loadSurrealSDK(customDriver?: any): SurrealModule {
     if (surrealModule) return surrealModule
-    try {
-        // `surrealdb` ships CJS exports — safe to require from CommonJS.
-        const mod = require("surrealdb") as SurrealModule
+    const mod = resolveModule<SurrealModule>("surrealdb", customDriver)
+    if (mod) {
         surrealModule = mod
         return mod
-    } catch {
-        throw new Error(`SurrealDB SDK (\`surrealdb\`) is not installed. Install it with:  npm install surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}`)
     }
+    throw new Error(
+        `SurrealDB SDK (\`surrealdb\`) is not installed or failed to load.\n` +
+            `Install it with:\n` +
+            `  • pnpm:  pnpm add surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}\n` +
+            `  • bun:   bun add surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}\n` +
+            `  • npm:   npm i surrealdb${needsEmbedded() ? " @surrealdb/node" : ""}`
+    )
 }
 
 // Holder for the user's options so `needsEmbedded()` can be called
@@ -96,6 +103,7 @@ interface ISurrealOptions {
     engine?: "surrealkv" | "rocksdb" | "mem"
     namespace?: string
     database?: string
+    driver?: any
 }
 
 /**
@@ -202,7 +210,7 @@ export class SurrealDriver implements IDBDriver {
     }
 
     async init(): Promise<void> {
-        const sdk = loadSurrealSDK()
+        const sdk = loadSurrealSDK(this.options.driver)
         this.Surreal = sdk.Surreal
         this.RecordId = sdk.RecordId
         this.Table = sdk.Table
@@ -213,19 +221,24 @@ export class SurrealDriver implements IDBDriver {
 
         if (isEmbedded) {
             // Embedded engines require @surrealdb/node (ESM-only, native binary).
-            // Dynamic import() works from CJS at runtime in Node.js 14+.
             let createNodeEngines: ((options?: Record<string, unknown>) => Record<string, unknown>) | null = null
             try {
                 // @surrealdb/node is an optional ESM-only package; load it dynamically.
-                const nodeModule = (await importESM("@surrealdb/node")) as SurrealNodeModule
-                createNodeEngines = nodeModule.createNodeEngines
-            } catch {
-                throw new Error("Embedded SurrealDB engine (`@surrealdb/node`) is not installed. " + "Install it with:  npm install @surrealdb/node")
+                const nodeModule = (await resolveESM<SurrealNodeModule>("@surrealdb/node")) ?? ((await importESM("@surrealdb/node")) as SurrealNodeModule)
+                createNodeEngines = nodeModule?.createNodeEngines ?? null
+            } catch {}
+
+            if (!createNodeEngines) {
+                throw new Error(
+                    "Embedded SurrealDB engine (`@surrealdb/node`) is not installed or failed to load.\n" +
+                        "Install it with:\n" +
+                        "  • pnpm:  pnpm add @surrealdb/node\n" +
+                        "  • bun:   bun add @surrealdb/node\n" +
+                        "  • npm:   npm i @surrealdb/node"
+                )
             }
 
-            // After the try/catch above, createNodeEngines is guaranteed non-null
-            // because the catch branch throws. TS can't track this, so we assert.
-            const nodeEngines = createNodeEngines!
+            const nodeEngines = createNodeEngines
             const engine = this.options.engine ?? "surrealkv"
             const folder = this.options.folder ?? "database"
             const connectionString = this.buildEmbeddedConnectionString(engine, folder)

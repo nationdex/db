@@ -10,6 +10,7 @@ interface ISurrealOptions {
     engine?: "surrealkv" | "rocksdb" | "mem";
     namespace?: string;
     database?: string;
+    driver?: any;
 }
 export declare class SurrealDriver implements IDBDriver {
     private readonly emitter;
@@ -32,6 +33,14 @@ export declare class SurrealDriver implements IDBDriver {
     find(data?: RecordData): Promise<SQLiteRecord[]>;
     delete(data: RecordData): Promise<void>;
     wipe(): Promise<void>;
+    /**
+     * Build the content object for a record (stored in SurrealDB).
+     *
+     * The `id` field is remapped to `entityId` to avoid collision with
+     * SurrealDB's reserved `id` (record ID) field.
+     */
+    private buildRecordContent;
+    importRecords(records: RecordData[]): Promise<number>;
     cdWipe(): Promise<void>;
     cdAdd(data: {
         name: string;

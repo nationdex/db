@@ -28,12 +28,15 @@ export type IDataBaseOptions = ({
     username?: string;
     password?: string;
     database?: string;
+    driver?: any;
 } | {
     type: "mongodb";
     url: string;
+    driver?: any;
 } | {
     type: "better-sqlite3" | "sqlite";
     folder?: string;
+    driver?: any;
 } | {
     type: "surrealdb";
     url?: string;
@@ -44,6 +47,7 @@ export type IDataBaseOptions = ({
     engine?: "surrealkv" | "rocksdb" | "mem";
     namespace?: string;
     database?: string;
+    driver?: any;
 }) & {
     events?: Array<keyof IDBEvents>;
 };

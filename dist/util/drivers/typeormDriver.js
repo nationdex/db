@@ -1,10 +1,15 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeORMDriver = void 0;
-require("reflect-metadata");
+const node_path_1 = __importDefault(require("node:path"));
 const typeorm_1 = require("typeorm");
 const database_1 = require("../database");
+const resolver_1 = require("../resolver");
 const types_1 = require("../types");
+(0, resolver_1.patchBunMkdir)();
 function isGuildData(data) {
     return ["member", "channel", "role"].includes(data.type);
 }
@@ -62,37 +67,85 @@ class TypeORMDriver {
         const data = { ...TypeORMDriver.config };
         let db;
         switch (data.type) {
-            case "mysql":
+            case "mysql": {
+                const driver = (0, resolver_1.resolveModule)("mysql2", data.driver) ?? (0, resolver_1.resolveModule)("mysql", data.driver);
                 db = new typeorm_1.DataSource({
                     ...data,
                     entities: this.entityManager.mysql,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 });
                 break;
-            case "postgres":
+            }
+            case "postgres": {
+                const driver = (0, resolver_1.resolveModule)("pg", data.driver);
                 db = new typeorm_1.DataSource({
                     ...data,
                     entities: this.entityManager.postgres,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 });
                 break;
-            case "mongodb":
+            }
+            case "mongodb": {
+                const driver = (0, resolver_1.resolveModule)("mongodb", data.driver);
                 db = new typeorm_1.DataSource({
                     ...data,
                     entities: this.entityManager.mongodb,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 });
                 break;
-            default:
+            }
+            case "better-sqlite3": {
+                const driver = (0, resolver_1.resolveModule)("better-sqlite3", data.driver);
+                const dbPath = node_path_1.default.resolve(data.folder ?? "database", this.databaseName);
                 db = new typeorm_1.DataSource({
                     ...data,
+                    type: "better-sqlite3",
                     entities: this.entityManager.sqlite,
                     synchronize: true,
-                    database: `${data.folder ?? "database"}/${this.databaseName}`,
+                    database: dbPath,
+                    ...(driver ? { driver } : {}),
                 });
                 break;
+            }
+            default: {
+                const driver = (0, resolver_1.resolveModule)("sqlite3", data.driver);
+                const dbPath = node_path_1.default.resolve(data.folder ?? "database", this.databaseName);
+                db = new typeorm_1.DataSource({
+                    ...data,
+                    type: "sqlite",
+                    entities: this.entityManager.sqlite,
+                    synchronize: true,
+                    database: dbPath,
+                    ...(driver ? { driver } : {}),
+                });
+                break;
+            }
         }
-        db = await db.initialize();
+        try {
+            db = await db.initialize();
+        }
+        catch (err) {
+            const driverHints = {
+                sqlite: "sqlite3",
+                "better-sqlite3": "better-sqlite3",
+                mysql: "mysql2",
+                postgres: "pg",
+                mongodb: "mongodb",
+            };
+            const expectedPkg = driverHints[data.type ?? "sqlite"];
+            if (err?.name === "DriverPackageNotInstalledError" || err?.message?.includes("package has not been found installed")) {
+                throw new Error(`ForgeDB (${data.type ?? "sqlite"}): The database driver package "${expectedPkg}" is not found or failed to load.\n` +
+                    `Install it with:\n` +
+                    `  • pnpm:  pnpm add ${expectedPkg}\n` +
+                    `  • bun:   bun add ${expectedPkg}\n` +
+                    `  • npm:   npm i ${expectedPkg}\n` +
+                    `Original error: ${err.message}`);
+            }
+            throw err;
+        }
         TypeORMDriver.activeDataBases.push({ name: this.databaseName, db });
         return db;
     }
@@ -154,6 +207,22 @@ class TypeORMDriver {
     }
     async wipe() {
         await this.db.getRepository(this.entities.Record).clear();
+    }
+    async importRecords(records) {
+        let count = 0;
+        for (const data of records) {
+            const newData = new this.entities.Record();
+            newData.identifier = database_1.DataBase.make_intetifier(data);
+            newData.name = data.name;
+            newData.id = data.id;
+            newData.type = data.type;
+            newData.value = data.value;
+            if (isGuildData(data))
+                newData.guildId = data.guildId;
+            await this.db.getRepository(this.entities.Record).save(newData);
+            count++;
+        }
+        return count;
     }
     async cdWipe() {
         await this.db.getRepository(this.entities.Cooldown).clear();

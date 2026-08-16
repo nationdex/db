@@ -80,6 +80,9 @@ class DataBase {
     static async wipe() {
         await DataBase.driver.wipe();
     }
+    static async importRecords(records) {
+        return await DataBase.driver.importRecords(records);
+    }
     /* ------------------------------------------------------------------ *
      * Cooldown CRUD — delegates to driver
      * ------------------------------------------------------------------ */

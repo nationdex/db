@@ -1,8 +1,11 @@
-import "reflect-metadata"
+import path from "node:path"
 import { DataSource, type EntitySchema, type MixedList } from "typeorm"
 import { DataBase } from "../database"
+import { patchBunMkdir, resolveModule } from "../resolver"
 import { Cooldown, type GuildData, type IDataBaseOptions, MongoCooldown, MongoRecord, MySQLRecord, PostgreSQLRecord, type RecordData, SQLiteRecord } from "../types"
 import type { DBEmitter, IDBDriver } from "./driver"
+
+patchBunMkdir()
 
 type AnyRecord = typeof SQLiteRecord | typeof MongoRecord | typeof MySQLRecord | typeof PostgreSQLRecord
 type AnyCooldown = typeof MongoCooldown | typeof Cooldown
@@ -84,37 +87,86 @@ export class TypeORMDriver implements IDBDriver {
         const data = { ...TypeORMDriver.config } as Exclude<IDataBaseOptions, { type: "surrealdb" }>
         let db: DataSource
         switch (data.type) {
-            case "mysql":
+            case "mysql": {
+                const driver = resolveModule("mysql2", data.driver) ?? resolveModule("mysql", data.driver)
                 db = new DataSource({
                     ...data,
                     entities: this.entityManager.mysql,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 })
                 break
-            case "postgres":
+            }
+            case "postgres": {
+                const driver = resolveModule("pg", data.driver)
                 db = new DataSource({
                     ...data,
                     entities: this.entityManager.postgres,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 })
                 break
-            case "mongodb":
+            }
+            case "mongodb": {
+                const driver = resolveModule("mongodb", data.driver)
                 db = new DataSource({
                     ...data,
                     entities: this.entityManager.mongodb,
                     synchronize: true,
+                    ...(driver ? { driver } : {}),
                 })
                 break
-            default:
+            }
+            case "better-sqlite3": {
+                const driver = resolveModule("better-sqlite3", data.driver)
+                const dbPath = path.resolve(data.folder ?? "database", this.databaseName)
                 db = new DataSource({
                     ...data,
+                    type: "better-sqlite3",
                     entities: this.entityManager.sqlite,
                     synchronize: true,
-                    database: `${data.folder ?? "database"}/${this.databaseName}`,
+                    database: dbPath,
+                    ...(driver ? { driver } : {}),
                 })
                 break
+            }
+            default: {
+                const driver = resolveModule("sqlite3", data.driver)
+                const dbPath = path.resolve(data.folder ?? "database", this.databaseName)
+                db = new DataSource({
+                    ...data,
+                    type: "sqlite",
+                    entities: this.entityManager.sqlite,
+                    synchronize: true,
+                    database: dbPath,
+                    ...(driver ? { driver } : {}),
+                })
+                break
+            }
         }
-        db = await db.initialize()
+        try {
+            db = await db.initialize()
+        } catch (err: any) {
+            const driverHints: Record<string, string> = {
+                sqlite: "sqlite3",
+                "better-sqlite3": "better-sqlite3",
+                mysql: "mysql2",
+                postgres: "pg",
+                mongodb: "mongodb",
+            }
+            const expectedPkg = driverHints[data.type ?? "sqlite"]
+            if (err?.name === "DriverPackageNotInstalledError" || err?.message?.includes("package has not been found installed")) {
+                throw new Error(
+                    `ForgeDB (${data.type ?? "sqlite"}): The database driver package "${expectedPkg}" is not found or failed to load.\n` +
+                        `Install it with:\n` +
+                        `  • pnpm:  pnpm add ${expectedPkg}\n` +
+                        `  • bun:   bun add ${expectedPkg}\n` +
+                        `  • npm:   npm i ${expectedPkg}\n` +
+                        `Original error: ${err.message}`
+                )
+            }
+            throw err
+        }
         TypeORMDriver.activeDataBases.push({ name: this.databaseName, db })
         return db
     }
