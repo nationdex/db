@@ -3,6 +3,7 @@
 This guide covers how to configure ForgeDB to use [SurrealDB](https://surrealdb.com) as the database backend. SurrealDB is a multi-model database built in Rust that combines document, graph, time-series, relational, and key-value data models into a single engine with a SQL-like query language called SurrealQL.
 
 ## Table of Contents
+
 1. [Why SurrealDB?](#why-surrealdb)
 2. [Installation](#installation)
 3. [Embedded Mode (No Server Required)](#embedded-mode-no-server-required)
@@ -79,7 +80,7 @@ client.extensions.load(
 ### Engine Options
 
 | Engine | Description | Data Persistence |
-|--------|-------------|------------------|
+| - | - | - |
 | `surrealkv` | SurrealDB's native key-value store (default, recommended) | Yes — survives restarts |
 | `rocksdb` | RocksDB-backed storage | Yes — survives restarts |
 | `mem` | In-memory only | No — data is lost on process exit |
@@ -139,7 +140,7 @@ new ForgeDB({
 ### Supported Protocols
 
 | Protocol | Use Case |
-|----------|----------|
+| - | - |
 | `ws://` | Unencrypted WebSocket (local dev) |
 | `wss://` | Encrypted WebSocket (production) |
 | `http://` | Unencrypted HTTP (stateless) |
@@ -208,12 +209,15 @@ No other changes are needed — all ForgeScript functions (`$getUserVar`, `$setU
 Existing SQLite data is **not** automatically migrated. To migrate your data without losing variables:
 
 1. **Export** — On your old bot (SQLite), run:
-   ```
+
+   ```text
    $writeFile[dump.json;$getDB]
    ```
+
    This saves all records to `dump.json` in the same format `$setDB` expects.
 
 2. **Switch backend** — Change your `ForgeDB` config from `sqlite` to `surrealdb`:
+
    ```typescript
    new ForgeDB({
        type: "surrealdb",
@@ -223,9 +227,11 @@ Existing SQLite data is **not** automatically migrated. To migrate your data wit
    ```
 
 3. **Import** — On your new bot (SurrealDB), run:
-   ```
+
+   ```text
    $setDB[$readFile[dump.json]]
    ```
+
    This bulk-imports all records in a single call. The `$setDB` function uses chunked batch inserts (1000 records per query) for scalability, so it works efficiently even with thousands of variables.
 
 > **Note:** Cooldowns are not included in `$getDB` output and will not be migrated. Since cooldowns are transient (they expire on their own), this is generally not an issue — they will simply reset on the new database.
@@ -272,6 +278,7 @@ Only for embedded mode. If you connect to a remote server via `url`, you only ne
 ### What platforms are supported for embedded mode?
 
 `@surrealdb/node` ships prebuilt native binaries for:
+
 - Windows x64
 - Linux x64 / arm64
 - macOS x64 / arm64
