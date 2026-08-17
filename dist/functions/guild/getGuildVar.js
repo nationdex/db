@@ -1,28 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const __1 = require("../..");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$getGuildVar",
     version: "2.0.0",
     description: "Retrieves the value of a variable associated with a guild",
     aliases: ["$getServerVar"],
-    output: script_1.ArgType.Unknown,
+    output: forgescript_1.ArgType.Unknown,
     unwrap: true,
     args: [
         {
             name: "name",
             description: "The name of the variable to query",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "guild ID",
             description: "The guild ID for which to retrieve the variable value",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
         {
@@ -30,7 +30,7 @@ exports.default = new script_1.NativeFunction({
             description: "The default value to return if the identifier doesn't exist in the variable",
             rest: false,
             required: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
     ],
     brackets: true,
@@ -44,7 +44,7 @@ exports.default = new script_1.NativeFunction({
                 if (typeof defData === "object" && defData !== null && "functions" in defData) {
                     const d = defData;
                     // Run
-                    const result = await script_1.Interpreter.run(ctx.clone({
+                    const result = await forgescript_1.Interpreter.run(ctx.clone({
                         data: d,
                         allowTopLevelReturn: true,
                         doNotSend: true,

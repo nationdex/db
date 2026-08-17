@@ -1,34 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$getUserLeaderboardValue",
     version: "2.0.0",
     description: "Returns the position of a user in the leaderboard of a specified variable",
     aliases: ["$getUserLeaderboardPosition"],
-    output: script_1.ArgType.Number,
+    output: forgescript_1.ArgType.Number,
     unwrap: true,
     args: [
         {
             name: "name",
             description: "The name of the variable",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "sort type",
             description: "The sort order for the leaderboard, either ascending (asc) or descending (desc)",
             rest: false,
-            type: script_1.ArgType.Enum,
+            type: forgescript_1.ArgType.Enum,
             enum: util_1.SortType,
         },
         {
             name: "user ID",
             description: "The user ID of the value",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
     ],

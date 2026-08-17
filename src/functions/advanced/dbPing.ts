@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks"
-import { ArgType, NativeFunction } from "@nationdex/script"
+import { ArgType, NativeFunction } from "@tryforge/forgescript"
 import { DataBase } from "../../util"
 
 export default new NativeFunction({

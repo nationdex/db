@@ -1,1 +1,1 @@
-{"version":3,"file":"getChannelVar.d.ts","sourceRoot":"","sources":["../../../src/functions/channel/getChannelVar.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAgD,cAAc,EAAE,MAAM,mBAAmB,CAAA;;;;;;;;;;;;;;;;;;;;AAKzG,wBAsDE"}
+{"version":3,"file":"getChannelVar.d.ts","sourceRoot":"","sources":["../../../src/functions/channel/getChannelVar.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAgD,cAAc,EAAE,MAAM,uBAAuB,CAAA;;;;;;;;;;;;;;;;;;;;AAK7G,wBAsDE"}

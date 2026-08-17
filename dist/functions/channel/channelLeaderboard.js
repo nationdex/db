@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$channelLeaderboard",
     version: "2.0.0",
     description: "Creates a leaderboard specific to channels based on a variable.",
-    output: script_1.ArgType.String,
+    output: forgescript_1.ArgType.String,
     brackets: true,
     unwrap: false,
     args: [
@@ -14,60 +14,60 @@ exports.default = new script_1.NativeFunction({
             name: "name",
             description: "The name of the variable used to create the leaderboard.",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "guild ID",
             description: "The unique identifier of the guild for which you want to retrieve channel variables.",
             rest: false,
-            type: script_1.ArgType.Guild,
+            type: forgescript_1.ArgType.Guild,
             required: false,
         },
         {
             name: "sort type",
             description: "The sorting order for the leaderboard, either ascending (asc) or descending (desc).",
             rest: false,
-            type: script_1.ArgType.Enum,
+            type: forgescript_1.ArgType.Enum,
             enum: util_1.SortType,
         },
         {
             name: "max",
             description: "The maximum number of entries to display per page on the leaderboard.",
             rest: false,
-            type: script_1.ArgType.Number,
+            type: forgescript_1.ArgType.Number,
         },
         {
             name: "page",
             description: "The specific page number of the leaderboard you wish to view.",
             rest: false,
-            type: script_1.ArgType.Number,
+            type: forgescript_1.ArgType.Number,
         },
         {
             name: "separator",
             description: "The separator to be utilized between each row in the leaderboard.",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "envValue",
             description: "The variable name to employ for $env, facilitating the retrieval of identifiers and values using $env[<name>;id] and $env[<name>;value] respectively.",
             rest: false,
             required: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "envPosition",
             description: "The variable name utilized for $env to acquire the position using $env[<name>].",
             required: false,
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "code",
             description: "Code executed for each row. Remember to use $return, otherwise it will not return anything.",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
     ],

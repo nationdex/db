@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@nationdex/script"
+import { ArgType, NativeFunction } from "@tryforge/forgescript"
 import { Like } from "typeorm"
 import { DataBase, VariableType } from "../../util"
 

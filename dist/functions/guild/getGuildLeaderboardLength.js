@@ -1,34 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$getGuildLeaderboardLength",
     version: "2.0.0",
     description: "Retrieves the length of a guild leaderboard",
     aliases: ["$getServerLeaderboardLength"],
-    output: script_1.ArgType.Number,
+    output: forgescript_1.ArgType.Number,
     unwrap: true,
     args: [
         {
             name: "name",
             description: "The name of the variable to query",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "length",
             description: "The number of guilds per page",
             rest: false,
-            type: script_1.ArgType.Number,
+            type: forgescript_1.ArgType.Number,
             required: false,
         },
         {
             name: "decimals",
             description: "Specify whether to return decimals for more precise results (default: false)",
             rest: false,
-            type: script_1.ArgType.Boolean,
+            type: forgescript_1.ArgType.Boolean,
             required: false,
         },
     ],

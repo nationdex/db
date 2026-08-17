@@ -1,4 +1,4 @@
-import { type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@nationdex/script";
+import { type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@tryforge/forgescript";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { type IDBEvents } from "./structures";
 import { type IDataBaseOptions } from "./util";

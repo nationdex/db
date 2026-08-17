@@ -1,4 +1,4 @@
-import { Interpreter } from "@nationdex/script"
+import { Interpreter } from "@tryforge/forgescript"
 import { ForgeDB } from ".."
 import { DBEventHandler } from "../structures/eventManager"
 

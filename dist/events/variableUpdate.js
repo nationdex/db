@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const __1 = require("..");
 const eventManager_1 = require("../structures/eventManager");
 exports.default = new eventManager_1.DBEventHandler({
@@ -10,7 +10,7 @@ exports.default = new eventManager_1.DBEventHandler({
     listener(extras) {
         const commands = this.getExtension(__1.ForgeDB, true).commands.get("variableUpdate");
         for (const command of commands) {
-            script_1.Interpreter.run({
+            forgescript_1.Interpreter.run({
                 obj: {},
                 client: this,
                 command,

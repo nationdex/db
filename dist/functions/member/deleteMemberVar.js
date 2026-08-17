@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$deleteMemberVar",
     version: "2.0.0",
     description: "Removes a value from a member variable",
@@ -13,21 +13,21 @@ exports.default = new script_1.NativeFunction({
             name: "name",
             description: "The name of the variable from which to remove the value",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "member ID",
             description: "The identifier of the value",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
         {
             name: "guild ID",
             description: "The guild to which the member belongs",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
     ],

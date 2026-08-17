@@ -1,4 +1,4 @@
-import { ArgType, NativeFunction } from "@nationdex/script"
+import { ArgType, NativeFunction } from "@tryforge/forgescript"
 import { DataType, type RecordData } from "../../util"
 
 export default new NativeFunction({

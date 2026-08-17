@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$memberCooldown",
     version: "2.0.0",
     description: "Adds a cooldown to a command for a member",
@@ -13,34 +13,34 @@ exports.default = new script_1.NativeFunction({
             name: "name",
             description: "The name of the command you are trying to add a cooldown",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "duration",
             description: "The duration of the cooldown",
             rest: false,
-            type: script_1.ArgType.Time,
+            type: forgescript_1.ArgType.Time,
             required: true,
         },
         {
             name: "code",
             description: "The code to execute if the cooldown is active",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "member ID",
             rest: false,
             description: "The member id to assign the cooldown to",
-            type: script_1.ArgType.User,
+            type: forgescript_1.ArgType.User,
             required: false,
         },
         {
             name: "guild ID",
             description: "The guild of the identifier",
             rest: false,
-            type: script_1.ArgType.Guild,
+            type: forgescript_1.ArgType.Guild,
             required: false,
         },
     ],

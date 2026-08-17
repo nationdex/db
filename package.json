@@ -42,7 +42,7 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
-    "@nationdex/script": "github:nationdex/script#main",
+    "@tryforge/forgescript": "github:tryforge/ForgeScript#dev",
     "@types/node": "^20.19.43",
     "discord.js": "^14.27.0",
     "mongodb": "^6.21.0",

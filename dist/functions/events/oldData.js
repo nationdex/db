@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$oldData",
     version: "2.0.0",
     description: "Retrieves the old data that has been updated for a record during an update event",
@@ -12,7 +12,7 @@ exports.default = new script_1.NativeFunction({
             name: "type",
             description: "The type of data you want to retrieve",
             rest: false,
-            type: script_1.ArgType.Enum,
+            type: forgescript_1.ArgType.Enum,
             enum: util_1.DataType,
             required: true,
         },

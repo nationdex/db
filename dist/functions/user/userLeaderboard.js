@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const script_1 = require("@nationdex/script");
+const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-exports.default = new script_1.NativeFunction({
+exports.default = new forgescript_1.NativeFunction({
     name: "$userLeaderboard",
     version: "2.0.0",
     description: "Creates a user leaderboard for a variable",
-    output: script_1.ArgType.String,
+    output: forgescript_1.ArgType.String,
     brackets: true,
     unwrap: false,
     args: [
@@ -14,53 +14,53 @@ exports.default = new script_1.NativeFunction({
             name: "name",
             description: "The name of the variable",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: true,
         },
         {
             name: "sort type",
             description: "The sort type for the leaderboard, either asc (ascending) or desc (descending)",
             rest: false,
-            type: script_1.ArgType.Enum,
+            type: forgescript_1.ArgType.Enum,
             enum: util_1.SortType,
         },
         {
             name: "max",
             description: "The maximum number of rows per page",
             rest: false,
-            type: script_1.ArgType.Number,
+            type: forgescript_1.ArgType.Number,
         },
         {
             name: "page",
             description: "The page number",
             rest: false,
-            type: script_1.ArgType.Number,
+            type: forgescript_1.ArgType.Number,
         },
         {
             name: "separator",
             description: "The separator to use for each row",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "envValue",
             description: "The variable name to use for $env. Retrieve the id with $env[<name>;id] and the value with $env[<name>;value]",
             rest: false,
             required: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "envPosition",
             description: "The variable name to use for $env. Retrieve the position with $env[<name>]",
             required: false,
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
         },
         {
             name: "code",
             description: "Code to execute for each row. Remember to use $return, otherwise it will not return anything.",
             rest: false,
-            type: script_1.ArgType.String,
+            type: forgescript_1.ArgType.String,
             required: false,
         },
     ],

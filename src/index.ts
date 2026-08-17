@@ -1,4 +1,4 @@
-import { Compiler, EventManager, type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@nationdex/script"
+import { Compiler, EventManager, type ForgeClient, ForgeExtension, type IExtendedCompilationResult } from "@tryforge/forgescript"
 import { TypedEmitter } from "tiny-typed-emitter"
 import { DBCommandManager, type IDBEvents } from "./structures"
 import { DataBase, type IDataBaseOptions } from "./util"

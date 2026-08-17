@@ -1,4 +1,4 @@
-import { BaseEventHandler, type ForgeClient } from "@nationdex/script";
+import { BaseEventHandler, type ForgeClient } from "@tryforge/forgescript";
 import type { SQLiteRecord } from "../util";
 export interface IDBEvents {
     connect: [];
