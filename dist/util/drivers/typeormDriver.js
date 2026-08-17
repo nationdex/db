@@ -166,16 +166,17 @@ class TypeORMDriver {
         });
     }
     async set(data) {
+        const identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
         const newData = new this.entities.Record();
-        newData.identifier = database_1.DataBase.make_intetifier(data);
+        newData.identifier = identifier;
         newData.name = data.name;
         newData.id = data.id;
         newData.type = data.type;
         newData.value = data.value;
-        if (isGuildData(data))
+        if (isGuildData(data) && data.guildId)
             newData.guildId = data.guildId;
         const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({
-            identifier: database_1.DataBase.make_intetifier(data),
+            identifier,
         }));
         if (oldData && this.type === "mongodb") {
             this.emitter.emit("variableUpdate", { newData, oldData });
@@ -212,12 +213,12 @@ class TypeORMDriver {
         let count = 0;
         for (const data of records) {
             const newData = new this.entities.Record();
-            newData.identifier = database_1.DataBase.make_intetifier(data);
+            newData.identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
             newData.name = data.name;
             newData.id = data.id;
             newData.type = data.type;
             newData.value = data.value;
-            if (isGuildData(data))
+            if (isGuildData(data) && data.guildId)
                 newData.guildId = data.guildId;
             await this.db.getRepository(this.entities.Record).save(newData);
             count++;

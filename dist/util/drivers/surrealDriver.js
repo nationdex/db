@@ -194,7 +194,7 @@ class SurrealDriver {
     }
     /* ---- Record CRUD ---- */
     async set(data) {
-        const identifier = database_1.DataBase.make_intetifier(data);
+        const identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
         const rid = new this.RecordId(RECORD_TABLE, identifier);
         // Fetch existing record for event semantics.
         const existing = (await this.db.select(rid));
@@ -205,7 +205,7 @@ class SurrealDriver {
             type: data.type,
             value: data.value,
         };
-        if (isGuildData(data))
+        if (isGuildData(data) && data.guildId)
             content.guildId = data.guildId;
         // UPSERT: creates the record if absent, replaces content if present.
         await this.db.upsert(rid).content(content);
@@ -273,14 +273,15 @@ class SurrealDriver {
      * SurrealDB's reserved `id` (record ID) field.
      */
     buildRecordContent(data) {
+        const identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
         const content = {
-            identifier: database_1.DataBase.make_intetifier(data),
+            identifier,
             name: data.name,
             entityId: data.id,
             type: data.type,
             value: data.value,
         };
-        if (isGuildData(data))
+        if (isGuildData(data) && data.guildId)
             content.guildId = data.guildId;
         return content;
     }
@@ -291,7 +292,7 @@ class SurrealDriver {
             const statements = [];
             const bindings = {};
             chunk.forEach((record, idx) => {
-                const identifier = database_1.DataBase.make_intetifier(record);
+                const identifier = record.identifier ?? database_1.DataBase.make_intetifier(record);
                 const idKey = `id${idx}`;
                 const contentKey = `c${idx}`;
                 // Bind a proper RecordId instance directly to the UPSERT statement.

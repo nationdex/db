@@ -189,16 +189,17 @@ export class TypeORMDriver implements IDBDriver {
     }
 
     async set(data: RecordData): Promise<void> {
+        const identifier = data.identifier ?? DataBase.make_intetifier(data)
         const newData = new this.entities.Record()
-        newData.identifier = DataBase.make_intetifier(data)
+        newData.identifier = identifier
         newData.name = data.name!
         newData.id = data.id!
         newData.type = data.type!
         newData.value = data.value!
-        if (isGuildData(data)) newData.guildId = data.guildId
+        if (isGuildData(data) && data.guildId) newData.guildId = data.guildId
 
         const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({
-            identifier: DataBase.make_intetifier(data),
+            identifier,
         })) as SQLiteRecord
 
         if (oldData && this.type === "mongodb") {
@@ -241,12 +242,12 @@ export class TypeORMDriver implements IDBDriver {
         let count = 0
         for (const data of records) {
             const newData = new this.entities.Record()
-            newData.identifier = DataBase.make_intetifier(data)
+            newData.identifier = data.identifier ?? DataBase.make_intetifier(data)
             newData.name = data.name!
             newData.id = data.id!
             newData.type = data.type!
             newData.value = data.value!
-            if (isGuildData(data)) newData.guildId = data.guildId
+            if (isGuildData(data) && data.guildId) newData.guildId = data.guildId
             await this.db.getRepository(this.entities.Record).save(newData)
             count++
         }

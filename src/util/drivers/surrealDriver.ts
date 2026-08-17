@@ -308,7 +308,7 @@ export class SurrealDriver implements IDBDriver {
     /* ---- Record CRUD ---- */
 
     async set(data: RecordData): Promise<void> {
-        const identifier = DataBase.make_intetifier(data)
+        const identifier = data.identifier ?? DataBase.make_intetifier(data)
         const rid = new this.RecordId(RECORD_TABLE, identifier)
 
         // Fetch existing record for event semantics.
@@ -321,7 +321,7 @@ export class SurrealDriver implements IDBDriver {
             type: data.type,
             value: data.value,
         }
-        if (isGuildData(data)) content.guildId = data.guildId
+        if (isGuildData(data) && data.guildId) content.guildId = data.guildId
 
         // UPSERT: creates the record if absent, replaces content if present.
         await this.db.upsert(rid).content(content)
@@ -400,14 +400,15 @@ export class SurrealDriver implements IDBDriver {
      * SurrealDB's reserved `id` (record ID) field.
      */
     private buildRecordContent(data: RecordData): Record<string, unknown> {
+        const identifier = data.identifier ?? DataBase.make_intetifier(data)
         const content: Record<string, unknown> = {
-            identifier: DataBase.make_intetifier(data),
+            identifier,
             name: data.name,
             entityId: data.id,
             type: data.type,
             value: data.value,
         }
-        if (isGuildData(data)) content.guildId = data.guildId
+        if (isGuildData(data) && data.guildId) content.guildId = data.guildId
         return content
     }
 
@@ -419,7 +420,7 @@ export class SurrealDriver implements IDBDriver {
             const bindings: Record<string, unknown> = {}
 
             chunk.forEach((record, idx) => {
-                const identifier = DataBase.make_intetifier(record)
+                const identifier = record.identifier ?? DataBase.make_intetifier(record)
                 const idKey = `id${idx}`
                 const contentKey = `c${idx}`
                 // Bind a proper RecordId instance directly to the UPSERT statement.
