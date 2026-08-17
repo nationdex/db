@@ -422,11 +422,10 @@ export class SurrealDriver implements IDBDriver {
                 const identifier = DataBase.make_intetifier(record)
                 const idKey = `id${idx}`
                 const contentKey = `c${idx}`
-                // type::record() safely constructs the record ID from
-                // a table name + identifier string — fully parameterised,
-                // no string interpolation, immune to injection.
-                statements.push(`UPSERT type::record('${RECORD_TABLE}', $${idKey}) CONTENT $${contentKey}`)
-                bindings[idKey] = identifier
+                // Bind a proper RecordId instance directly to the UPSERT statement.
+                // This is fully parameterised and avoids dialect/version casting quirks.
+                statements.push(`UPSERT $${idKey} CONTENT $${contentKey}`)
+                bindings[idKey] = new this.RecordId(RECORD_TABLE, identifier)
                 bindings[contentKey] = this.buildRecordContent(record)
             })
 
