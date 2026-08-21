@@ -43,6 +43,19 @@ export declare class DataBase {
         name?: string;
         id?: string;
     }): string;
+    /**
+     * Sanitize a single record for cross-driver portability.
+     *
+     * - Ensures `value` is always a string (objects are JSON-stringified).
+     * - Converts `null` id / guildId to `undefined`.
+     * - Computes `identifier` when missing.
+     * - Validates that `name` and `type` are present.
+     */
+    static normalizeRecord(record: RecordData): RecordData;
+    /**
+     * Normalize an array of records for bulk import.
+     */
+    static normalizeRecords(records: RecordData[]): RecordData[];
     static set(data: RecordData): Promise<void>;
     static get(data: RecordData): Promise<SQLiteRecord | null>;
     static getAll(): Promise<SQLiteRecord[]>;

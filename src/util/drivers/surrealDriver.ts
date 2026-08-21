@@ -189,7 +189,7 @@ const RECORD_TABLE = "record"
 const COOLDOWN_TABLE = "cooldown"
 const DEFAULT_NAMESPACE = "forge"
 const DEFAULT_DATABASE = "forge.db"
-const IMPORT_CHUNK_SIZE = 1000
+const IMPORT_CHUNK_SIZE = 100
 
 export class SurrealDriver implements IDBDriver {
     private readonly emitter: DBEmitter
@@ -401,12 +401,14 @@ export class SurrealDriver implements IDBDriver {
      */
     private buildRecordContent(data: RecordData): Record<string, unknown> {
         const identifier = data.identifier ?? DataBase.make_intetifier(data)
+        // Ensure value is always stored as a string.
+        const value = data.value !== null && data.value !== undefined ? (typeof data.value === "object" ? JSON.stringify(data.value) : String(data.value)) : ""
         const content: Record<string, unknown> = {
             identifier,
             name: data.name,
             entityId: data.id,
             type: data.type,
-            value: data.value,
+            value,
         }
         if (isGuildData(data) && data.guildId) content.guildId = data.guildId
         return content

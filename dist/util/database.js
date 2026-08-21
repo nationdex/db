@@ -59,6 +59,44 @@ class DataBase {
     static make_cdIdentifier(data) {
         return `${data.name}${data.id ? `_${data.id}` : ""}`;
     }
+    /**
+     * Sanitize a single record for cross-driver portability.
+     *
+     * - Ensures `value` is always a string (objects are JSON-stringified).
+     * - Converts `null` id / guildId to `undefined`.
+     * - Computes `identifier` when missing.
+     * - Validates that `name` and `type` are present.
+     */
+    static normalizeRecord(record) {
+        const name = record.name ?? undefined;
+        const type = record.type ?? undefined;
+        // Convert null → undefined for id and guildId.
+        const id = record.id ?? undefined;
+        const guildId = isGuildData(record) ? (record.guildId ?? undefined) : undefined;
+        // Ensure value is always a string.
+        let value;
+        if (record.value === null || record.value === undefined) {
+            value = "";
+        }
+        else if (typeof record.value === "object") {
+            value = JSON.stringify(record.value);
+        }
+        else {
+            value = String(record.value);
+        }
+        const normalized = { name, id, type, value };
+        if (guildId)
+            normalized.guildId = guildId;
+        // Preserve or compute the identifier.
+        normalized.identifier = record.identifier ?? DataBase.make_intetifier(normalized);
+        return normalized;
+    }
+    /**
+     * Normalize an array of records for bulk import.
+     */
+    static normalizeRecords(records) {
+        return records.map((r) => DataBase.normalizeRecord(r));
+    }
     /* ------------------------------------------------------------------ *
      * Record CRUD — delegates to driver
      * ------------------------------------------------------------------ */
@@ -81,7 +119,8 @@ class DataBase {
         await DataBase.driver.wipe();
     }
     static async importRecords(records) {
-        return await DataBase.driver.importRecords(records);
+        const normalized = DataBase.normalizeRecords(records);
+        return await DataBase.driver.importRecords(normalized);
     }
     /* ------------------------------------------------------------------ *
      * Cooldown CRUD — delegates to driver

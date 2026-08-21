@@ -71,6 +71,48 @@ export class DataBase {
         return `${data.name}${data.id ? `_${data.id}` : ""}`
     }
 
+    /**
+     * Sanitize a single record for cross-driver portability.
+     *
+     * - Ensures `value` is always a string (objects are JSON-stringified).
+     * - Converts `null` id / guildId to `undefined`.
+     * - Computes `identifier` when missing.
+     * - Validates that `name` and `type` are present.
+     */
+    public static normalizeRecord(record: RecordData): RecordData {
+        const name = record.name ?? undefined
+        const type = record.type ?? undefined
+
+        // Convert null → undefined for id and guildId.
+        const id = record.id ?? undefined
+        const guildId = isGuildData(record) ? (record.guildId ?? undefined) : undefined
+
+        // Ensure value is always a string.
+        let value: string
+        if (record.value === null || record.value === undefined) {
+            value = ""
+        } else if (typeof record.value === "object") {
+            value = JSON.stringify(record.value)
+        } else {
+            value = String(record.value)
+        }
+
+        const normalized: RecordData = { name, id, type, value } as RecordData
+        if (guildId) (normalized as any).guildId = guildId
+
+        // Preserve or compute the identifier.
+        normalized.identifier = record.identifier ?? DataBase.make_intetifier(normalized)
+
+        return normalized
+    }
+
+    /**
+     * Normalize an array of records for bulk import.
+     */
+    public static normalizeRecords(records: RecordData[]): RecordData[] {
+        return records.map((r) => DataBase.normalizeRecord(r))
+    }
+
     /* ------------------------------------------------------------------ *
      * Record CRUD — delegates to driver
      * ------------------------------------------------------------------ */
@@ -100,7 +142,8 @@ export class DataBase {
     }
 
     public static async importRecords(records: RecordData[]): Promise<number> {
-        return await DataBase.driver.importRecords(records)
+        const normalized = DataBase.normalizeRecords(records)
+        return await DataBase.driver.importRecords(normalized)
     }
 
     /* ------------------------------------------------------------------ *

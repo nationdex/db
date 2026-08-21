@@ -210,18 +210,30 @@ class TypeORMDriver {
         await this.db.getRepository(this.entities.Record).clear();
     }
     async importRecords(records) {
+        const CHUNK_SIZE = 250;
+        const repo = this.db.getRepository(this.entities.Record);
         let count = 0;
-        for (const data of records) {
-            const newData = new this.entities.Record();
-            newData.identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
-            newData.name = data.name;
-            newData.id = data.id;
-            newData.type = data.type;
-            newData.value = data.value;
-            if (isGuildData(data) && data.guildId)
-                newData.guildId = data.guildId;
-            await this.db.getRepository(this.entities.Record).save(newData);
-            count++;
+        for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+            const chunk = records.slice(i, i + CHUNK_SIZE);
+            const entities = chunk.map((data) => {
+                const entity = new this.entities.Record();
+                entity.identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
+                entity.name = data.name;
+                entity.id = data.id;
+                entity.type = data.type;
+                // Ensure value is always a string.
+                entity.value =
+                    data.value !== null && data.value !== undefined
+                        ? typeof data.value === "object"
+                            ? JSON.stringify(data.value)
+                            : String(data.value)
+                        : "";
+                if (isGuildData(data) && data.guildId)
+                    entity.guildId = data.guildId;
+                return entity;
+            });
+            await repo.save(entities);
+            count += entities.length;
         }
         return count;
     }

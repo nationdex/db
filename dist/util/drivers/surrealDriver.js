@@ -90,7 +90,7 @@ const RECORD_TABLE = "record";
 const COOLDOWN_TABLE = "cooldown";
 const DEFAULT_NAMESPACE = "forge";
 const DEFAULT_DATABASE = "forge.db";
-const IMPORT_CHUNK_SIZE = 1000;
+const IMPORT_CHUNK_SIZE = 100;
 class SurrealDriver {
     emitter;
     options;
@@ -274,12 +274,16 @@ class SurrealDriver {
      */
     buildRecordContent(data) {
         const identifier = data.identifier ?? database_1.DataBase.make_intetifier(data);
+        // Ensure value is always stored as a string.
+        const value = data.value !== null && data.value !== undefined
+            ? (typeof data.value === "object" ? JSON.stringify(data.value) : String(data.value))
+            : "";
         const content = {
             identifier,
             name: data.name,
             entityId: data.id,
             type: data.type,
-            value: data.value,
+            value,
         };
         if (isGuildData(data) && data.guildId)
             content.guildId = data.guildId;
