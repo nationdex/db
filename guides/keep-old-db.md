@@ -23,13 +23,7 @@ npm i github:tryforge/ForgeDB#old
 
 ### Is It Possible to Retain My Database While Using the New One?
 
-Yes, but it is not recommended due to the manual effort required. To transfer your data, execute the following ForgeScript command before deleting `forge.db`:
-
-```text
-$writeFile[forge.db.json;$getDB]
-```
-
-This command creates a `forge.db.json` file containing your old database records. Then, follow the [update guide](https://github.com/tryforge/ForgeDB/blob/main/guides/how-to-update.md) to install the new ForgeDB. Manually transfer each record from `forge.db.json`, ensuring you use the appropriate function for each ID. Although time-consuming, this process allows you to update without data loss.
+Yes, but it is not recommended due to the manual effort required, and ForgeDB no longer provides a `$getDB` command to bulk-dump your records — it was removed after causing data corruption during bulk export/import. Instead, before deleting `forge.db`, note down or manually re-export the records you care about (per record, using the relevant `$get...Var` functions), then follow the [update guide](https://github.com/tryforge/ForgeDB/blob/main/guides/how-to-update.md) to install the new ForgeDB and re-enter them with the appropriate `$set...Var` functions. Although time-consuming, this process allows you to update without data loss.
 
 ### Conclusion
 

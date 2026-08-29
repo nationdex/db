@@ -9,7 +9,7 @@ This guide covers how to configure ForgeDB to use [SurrealDB](https://surrealdb.
 3. [Embedded Mode (No Server Required)](#embedded-mode-no-server-required)
 4. [Remote Server Mode](#remote-server-mode)
 5. [Configuration Options](#configuration-options)
-6. [Migrating from SQLite / Better-SQLite3](#migrating-from-sqlite--better-sqlite3)
+6. [Switching from SQLite / Better-SQLite3](#switching-from-sqlite--better-sqlite3)
 7. [How It Works Under the Hood](#how-it-works-under-the-hood)
 8. [Frequently Asked Questions](#frequently-asked-questions)
 
@@ -179,7 +179,7 @@ The full set of options for `type: "surrealdb"`:
 
 ---
 
-## Migrating from SQLite / Better-SQLite3
+## Switching from SQLite / Better-SQLite3
 
 Switching from SQLite or Better-SQLite3 to SurrealDB is a one-line change in your bot's main file:
 
@@ -206,35 +206,11 @@ No other changes are needed — all ForgeScript functions (`$getUserVar`, `$setU
 
 ### Data Migration
 
-Existing SQLite data is **not** automatically migrated. To migrate your data without losing variables:
+Existing SQLite data is **not** automatically migrated, and ForgeDB no longer ships a `$getDB`/`$setDB` export-import path for this.
 
-1. **Export** — On your old bot (SQLite), run:
+Those functions were removed: bulk-dumping a live SQLite database to JSON and re-importing it into SurrealDB repeatedly produced corrupted or partial records during the transition, so we'd rather you not rely on them.
 
-   ```text
-   $writeFile[dump.json;$getDB]
-   ```
-
-   This saves all records to `dump.json` in the same format `$setDB` expects.
-
-2. **Switch backend** — Change your `ForgeDB` config from `sqlite` to `surrealdb`:
-
-   ```typescript
-   new ForgeDB({
-       type: "surrealdb",
-       folder: "./database",
-       engine: "rocksdb",
-   })
-   ```
-
-3. **Import** — On your new bot (SurrealDB), run:
-
-   ```text
-   $setDB[$readFile[dump.json]]
-   ```
-
-   This bulk-imports all records in a single call. The `$setDB` function uses chunked batch inserts (1000 records per query) for scalability, so it works efficiently even with thousands of variables.
-
-> **Note:** Cooldowns are not included in `$getDB` output and will not be migrated. Since cooldowns are transient (they expire on their own), this is generally not an issue — they will simply reset on the new database.
+If you need to carry variables over, write a small one-off Node script that reads directly from your old driver and calls `DataBase.set()` against the new SurrealDB-backed instance for each record, so you can inspect and retry failures individually instead of trusting a single bulk operation.
 
 ---
 
