@@ -1,6 +1,6 @@
-import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
-import { ForgeDB } from "../.."
+import { ArgType, IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
 import { DataBase } from "../../util"
+import { DB } from "../.."
 
 export default new NativeFunction({
     name: "$getGuildVar",
@@ -37,8 +37,8 @@ export default new NativeFunction({
         const data = await DataBase.get({ name, id: guild ?? ctx.guild!.id, type: "guild" }).then((x) => x?.value)
         if (data === null || data === undefined) {
             if (def) return this.successJSON(def)
-            else if (ForgeDB.defaults && name in ForgeDB.defaults) {
-                const defData = ForgeDB.defaults[name]
+            else if (DB.defaults && name in DB.defaults) {
+                const defData = DB.defaults[name]
                 if (typeof defData === "object" && defData !== null && "functions" in (defData as IExtendedCompilationResult)) {
                     const d = <IExtendedCompilationResult>defData
                     // Run

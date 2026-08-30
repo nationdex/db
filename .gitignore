@@ -1,7 +1,1 @@
 node_modules
-\.env
-prisma
-*.db
-*.sqlite
-*/**__tests__
-database

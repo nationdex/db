@@ -1,5 +1,5 @@
-import { ArgType, type IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
-import { ForgeDB } from "../.."
+import { ArgType, IExtendedCompilationResult, Interpreter, NativeFunction } from "@tryforge/forgescript"
+import { DB } from "../.."
 import { DataBase } from "../../util"
 
 export default new NativeFunction({
@@ -40,8 +40,8 @@ export default new NativeFunction({
         }).then((x) => x?.value)
         if (data === null || data === undefined) {
             if (def) return this.successJSON(def)
-            else if (ForgeDB.defaults && name in ForgeDB.defaults) {
-                const defData = ForgeDB.defaults[name]
+            else if (DB.defaults && name in DB.defaults) {
+                const defData = DB.defaults[name]
                 if ("functions" in (defData as IExtendedCompilationResult)) {
                     const d = <IExtendedCompilationResult>defData
                     // Run

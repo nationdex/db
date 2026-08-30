@@ -1,3 +1,0 @@
-# Normalize all line endings to LF in the repository and working tree.
-# Prevents CRLF/LF churn across Windows/Linux/macOS contributors and CI.
-* text=auto eol=lf

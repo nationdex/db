@@ -18,8 +18,8 @@ class DataBaseManager {
         await this.waitForConfig();
         this.type = config.type;
         DataBaseManager.type = this.type;
-        const check = activeDataBases.find((s) => s.name === this.database);
-        if (check?.name === this.database)
+        const check = activeDataBases.find((s) => s.name == this.database);
+        if (check?.name == this.database)
             return check.db;
         const data = { ...config };
         let db;
@@ -69,7 +69,7 @@ class DataBaseManager {
             setTimeout(() => {
                 clearInterval(check);
                 if (!config)
-                    throw new Error("Unable to resolve ForgeDB extension configuration. Dependent packages failed to initialize.");
+                    throw new Error("Unable to resolve DB extension configuration. Dependent packages failed to initialize.");
             }, 10_000);
         });
     }

@@ -1,30 +1,4 @@
 import { ArgType, NativeFunction } from "@tryforge/forgescript";
-import { VariableType } from "../../util";
-declare const _default: NativeFunction<[{
-    name: string;
-    description: string;
-    rest: false;
-    type: ArgType.String;
-    required: false;
-}, {
-    name: string;
-    description: string;
-    rest: false;
-    type: ArgType.Enum;
-    enum: typeof VariableType;
-    required: false;
-}, {
-    name: string;
-    description: string;
-    rest: false;
-    type: ArgType.Boolean;
-    required: false;
-}, {
-    name: string;
-    description: string;
-    rest: false;
-    type: ArgType.String;
-    required: false;
-}], true>;
+declare const _default: NativeFunction<import("@tryforge/forgescript").IArg<ArgType, boolean, boolean, import("@tryforge/forgescript").EnumLike<any>>[], false>;
 export default _default;
 //# sourceMappingURL=getDB.d.ts.map

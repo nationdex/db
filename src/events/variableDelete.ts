@@ -1,5 +1,5 @@
 import { Interpreter } from "@tryforge/forgescript"
-import { ForgeDB } from ".."
+import { DB } from ".."
 import { DBEventHandler } from "../structures/eventManager"
 
 export default new DBEventHandler({
@@ -7,7 +7,7 @@ export default new DBEventHandler({
     version: "2.0.0",
     description: "This event is triggered when a variable gets deleted.",
     listener(extras) {
-        const commands = this.getExtension(ForgeDB, true).commands.get("variableDelete")
+        const commands = this.getExtension(DB, true).commands.get("variableDelete")
 
         for (const command of commands) {
             Interpreter.run({

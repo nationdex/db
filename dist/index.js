@@ -1,14 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataBaseManager = exports.ForgeDB = void 0;
+exports.DataBaseManager = exports.DB = void 0;
 const forgescript_1 = require("@tryforge/forgescript");
-const tiny_typed_emitter_1 = require("tiny-typed-emitter");
-const structures_1 = require("./structures");
 const util_1 = require("./util");
-class ForgeDB extends forgescript_1.ForgeExtension {
+const structures_1 = require("./structures");
+const tiny_typed_emitter_1 = require("tiny-typed-emitter");
+class DB extends forgescript_1.ForgeExtension {
     options;
     static defaults;
-    name = "forge.db";
+    name = "db";
     description = "A fast and reliable database extension for ForgeScript.";
     version = require("../package.json").version;
     commands;
@@ -19,18 +19,18 @@ class ForgeDB extends forgescript_1.ForgeExtension {
     }
     init(client) {
         this.commands = new structures_1.DBCommandManager(client);
-        forgescript_1.EventManager.load("ForgeDBEvents", `${__dirname}/events`);
-        this.load(`${__dirname}/functions`);
+        forgescript_1.EventManager.load('DBEvents', __dirname + '/events');
+        this.load(__dirname + "/functions");
         new util_1.DataBase(this.emitter, this.options).init();
         client.db = util_1.DataBase;
         if (this.options?.events?.length)
-            client.events.load("ForgeDBEvents", this.options.events);
+            client.events.load("DBEvents", this.options.events);
     }
     variables(rec) {
-        ForgeDB.variables(rec);
+        DB.variables(rec);
     }
     static variables(rec) {
-        ForgeDB.defaults = ForgeDB.compileVariables(rec);
+        DB.defaults = DB.compileVariables(rec);
     }
     static compileVariables(rec) {
         const obj = {};
@@ -45,7 +45,7 @@ class ForgeDB extends forgescript_1.ForgeExtension {
         return obj;
     }
 }
-exports.ForgeDB = ForgeDB;
+exports.DB = DB;
 var util_2 = require("./util");
 Object.defineProperty(exports, "DataBaseManager", { enumerable: true, get: function () { return util_2.DataBaseManager; } });
 //# sourceMappingURL=index.js.map

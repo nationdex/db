@@ -1,13 +1,13 @@
 import { Interpreter } from "@tryforge/forgescript"
-import { ForgeDB } from ".."
+import { DB } from ".."
 import { DBEventHandler } from "../structures/eventManager"
 
 export default new DBEventHandler({
     name: "connect",
     version: "2.0.0",
-    description: "This event is triggered when ForgeDB is connected with ForgeScript",
+    description: "This event is triggered when db is connected with ForgeScript",
     listener() {
-        const commands = this.getExtension(ForgeDB, true).commands.get("connect")
+        const commands = this.getExtension(DB, true).commands.get("connect")
 
         for (const command of commands) {
             Interpreter.run({

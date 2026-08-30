@@ -1,6 +1,6 @@
-import { BaseEventHandler, type ForgeClient } from "@tryforge/forgescript"
-import { ForgeDB } from ".."
-import type { SQLiteRecord } from "../util"
+import { BaseEventHandler, ForgeClient } from "@tryforge/forgescript"
+import { DB } from ".."
+import { SQLiteRecord } from "../util"
 
 export interface IDBEvents {
     connect: []
@@ -24,7 +24,7 @@ export interface IDBEvents {
 
 export class DBEventHandler<T extends keyof IDBEvents> extends BaseEventHandler<IDBEvents, T> {
     register(client: ForgeClient): void {
-        //@ts-expect-error
-        client.getExtension(ForgeDB, true)["emitter"].on(this.name, this.listener.bind(client))
+        //@ts-ignore
+        client.getExtension(DB, true)["emitter"].on(this.name, this.listener.bind(client))
     }
 }

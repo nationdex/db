@@ -1,6 +1,6 @@
 import "reflect-metadata";
-import { DataSource, type EntitySchema, type MixedList } from "typeorm";
-import type { IDataBaseOptions } from "./types";
+import { IDataBaseOptions } from "./types";
+import { DataSource, EntitySchema, MixedList } from "typeorm";
 export declare abstract class DataBaseManager {
     abstract database: string;
     abstract entityManager: {

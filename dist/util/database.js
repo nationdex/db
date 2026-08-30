@@ -1,150 +1,110 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataBase = void 0;
-const drivers_1 = require("./drivers");
+const types_1 = require("./types");
+require("reflect-metadata");
+const databaseManager_1 = require("./databaseManager");
 function isGuildData(data) {
     return ["member", "channel", "role"].includes(data.type);
 }
-/**
- * Static facade for all database operations.
- *
- * This class delegates every I/O call to an `IDBDriver` instance selected
- * at construction time based on `IDataBaseOptions.type`. The available
- * drivers are:
- *
- * - `TypeORMDriver` — SQLite, MySQL, PostgreSQL, MongoDB (via TypeORM)
- * - `SurrealDriver` — SurrealDB (via the `surrealdb` SDK, remote or embedded)
- *
- * All 70+ function files in `src/functions/` call `DataBase.*` statics
- * exclusively, so the driver swap is completely transparent to them.
- *
- * The pure helper functions `make_intetifier` and `make_cdIdentifier`
- * remain on this class — they don't touch the database and are shared
- * by every driver.
- */
-class DataBase {
-    /**
-     * The active driver instance.
-     *
-     * Set once during `init()` and used by all static delegate methods.
-     */
-    static driver;
-    /**
-     * The configured backend type.
-     *
-     * Preserved for backwards compatibility — some external code may
-     * inspect `DataBase.type` to determine which database is in use.
-     */
-    static type;
-    /** Emitter instance, stored for `init()` to fire the `connect` event. */
+class DataBase extends databaseManager_1.DataBaseManager {
+    emitter;
+    database = "db";
+    entityManager = {
+        sqlite: [types_1.SQLiteRecord, types_1.Cooldown],
+        mongodb: [types_1.MongoRecord, types_1.MongoCooldown],
+        mysql: [types_1.MySQLRecord, types_1.Cooldown],
+        postgres: [types_1.PostgreSQLRecord, types_1.Cooldown],
+    };
+    static entities;
+    db;
+    static db;
     static emitter;
     constructor(emitter, options) {
-        const opts = options ?? { type: "sqlite" };
-        DataBase.type = opts.type;
-        DataBase.emitter = emitter;
-        // The driver receives the emitter so it can emit events.
-        DataBase.driver = (0, drivers_1.createDriver)(opts, emitter);
+        super(options ?? { type: "sqlite" });
+        this.emitter = emitter;
+        this.type = options?.type || "sqlite";
+        this.db = this.getDB();
+        DataBase.entities = {
+            Record: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][0],
+            Cooldown: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][1],
+        };
     }
-    /** Initialise the underlying driver connection and emit `connect`. */
     async init() {
-        await DataBase.driver.init();
+        DataBase.emitter = this.emitter;
+        DataBase.db = await this.db;
         DataBase.emitter.emit("connect");
     }
-    /* ------------------------------------------------------------------ *
-     * Pure helpers (no I/O) — shared by all drivers
-     * ------------------------------------------------------------------ */
     static make_intetifier(data) {
-        return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`;
+        return `${data.type}_${data.name}_${isGuildData(data) ? data.guildId + "_" : ""}${data.id}`;
     }
-    static make_cdIdentifier(data) {
-        return `${data.name}${data.id ? `_${data.id}` : ""}`;
-    }
-    /**
-     * Sanitize a single record for cross-driver portability.
-     *
-     * - Ensures `value` is always a string (objects are JSON-stringified).
-     * - Converts `null` id / guildId to `undefined`.
-     * - Computes `identifier` when missing.
-     * - Validates that `name` and `type` are present.
-     */
-    static normalizeRecord(record) {
-        const name = record.name ?? undefined;
-        const type = record.type ?? undefined;
-        // Convert null → undefined for id and guildId.
-        const id = record.id ?? undefined;
-        const guildId = isGuildData(record) ? (record.guildId ?? undefined) : undefined;
-        // Ensure value is always a string.
-        let value;
-        if (record.value === null || record.value === undefined) {
-            value = "";
-        }
-        else if (typeof record.value === "object") {
-            value = JSON.stringify(record.value);
+    static async set(data) {
+        const newData = new this.entities.Record();
+        newData.identifier = this.make_intetifier(data);
+        newData.name = data.name;
+        newData.id = data.id;
+        newData.type = data.type;
+        newData.value = data.value;
+        if (isGuildData(data))
+            newData.guildId = data.guildId;
+        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) }));
+        if (oldData && this.type == "mongodb") {
+            this.emitter.emit("variableUpdate", { newData, oldData });
+            this.db.getRepository(this.entities.Record).update(oldData, newData);
         }
         else {
-            value = String(record.value);
+            oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData });
+            await this.db.getRepository(this.entities.Record).save(newData);
         }
-        const normalized = { name, id, type, value };
-        if (guildId)
-            normalized.guildId = guildId;
-        // Preserve or compute the identifier.
-        normalized.identifier = record.identifier ?? DataBase.make_intetifier(normalized);
-        return normalized;
-    }
-    /**
-     * Normalize an array of records for bulk import.
-     */
-    static normalizeRecords(records) {
-        return records.map((r) => DataBase.normalizeRecord(r));
-    }
-    /* ------------------------------------------------------------------ *
-     * Record CRUD — delegates to driver
-     * ------------------------------------------------------------------ */
-    static async set(data) {
-        await DataBase.driver.set(data);
     }
     static async get(data) {
-        return await DataBase.driver.get(data);
+        const identifier = data.identifier ?? this.make_intetifier(data);
+        return await this.db.getRepository(this.entities.Record).findOneBy({ identifier });
     }
     static async getAll() {
-        return await DataBase.driver.getAll();
+        return await this.db.getRepository(this.entities.Record).find();
     }
     static async find(data) {
-        return await DataBase.driver.find(data);
+        return await this.db.getRepository(this.entities.Record).find({
+            where: { ...data },
+        });
     }
     static async delete(data) {
-        await DataBase.driver.delete(data);
+        const identifier = data.identifier ?? this.make_intetifier(data);
+        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) });
+        return await this.db.getRepository(this.entities.Record).delete({ identifier });
     }
     static async wipe() {
-        await DataBase.driver.wipe();
+        return await this.db.getRepository(this.entities.Record).clear();
     }
-    static async importRecords(records) {
-        const normalized = DataBase.normalizeRecords(records);
-        return await DataBase.driver.importRecords(normalized);
-    }
-    /* ------------------------------------------------------------------ *
-     * Cooldown CRUD — delegates to driver
-     * ------------------------------------------------------------------ */
     static async cdWipe() {
-        await DataBase.driver.cdWipe();
+        return await this.db.getRepository(this.entities.Cooldown).clear();
+    }
+    static make_cdIdentifier(data) {
+        return `${data.name}${data.id ? "_" + data.id : ""}`;
     }
     static async cdAdd(data) {
-        await DataBase.driver.cdAdd(data);
+        const cd = new this.entities.Cooldown();
+        cd.identifier = this.make_cdIdentifier(data);
+        cd.name = data.name;
+        cd.id = data.id;
+        cd.startedAt = Date.now();
+        cd.duration = data.duration;
+        const oldCD = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier: this.make_cdIdentifier(data) });
+        if (oldCD && this.type == "mongodb")
+            return await this.db.getRepository(this.entities.Cooldown).update(oldCD, cd);
+        else
+            return await this.db.getRepository(this.entities.Cooldown).save(cd);
     }
     static async cdDelete(identifier) {
-        await DataBase.driver.cdDelete(identifier);
+        await this.db.getRepository(this.entities.Cooldown).delete({ identifier });
     }
     static async cdTimeLeft(identifier) {
-        return await DataBase.driver.cdTimeLeft(identifier);
+        const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier });
+        return data ? { ...data, left: Math.max(data.duration - (Date.now() - data.startedAt), 0) } : { left: 0 };
     }
-    /* ------------------------------------------------------------------ *
-     * Raw query + ping — delegates to driver
-     * ------------------------------------------------------------------ */
     static async query(query) {
-        return await DataBase.driver.query(query);
-    }
-    static async ping() {
-        return await DataBase.driver.ping();
+        return await this.db.query(query);
     }
 }
 exports.DataBase = DataBase;

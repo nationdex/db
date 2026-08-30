@@ -1,6 +1,6 @@
 import { ArgType, NativeFunction } from "@tryforge/forgescript"
-import { Like } from "typeorm"
 import { DataBase, VariableType } from "../../util"
+import { Like } from "typeorm"
 
 export default new NativeFunction({
     name: "$searchDB",

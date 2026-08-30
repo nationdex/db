@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const forgescript_1 = require("@tryforge/forgescript");
-const __1 = require("../..");
 const util_1 = require("../../util");
+const __1 = require("../..");
 exports.default = new forgescript_1.NativeFunction({
     name: "$getChannelVar",
     version: "2.0.0",
@@ -38,8 +38,8 @@ exports.default = new forgescript_1.NativeFunction({
         if (data === null || data === undefined) {
             if (def)
                 return this.successJSON(def);
-            else if (__1.ForgeDB.defaults && name in __1.ForgeDB.defaults) {
-                const defData = __1.ForgeDB.defaults[name];
+            else if (__1.DB.defaults && name in __1.DB.defaults) {
+                const defData = __1.DB.defaults[name];
                 if (typeof defData === "object" && defData !== null && "functions" in defData) {
                     const d = defData;
                     // Run

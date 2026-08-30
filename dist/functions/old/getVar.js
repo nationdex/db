@@ -42,8 +42,8 @@ exports.default = new forgescript_1.NativeFunction({
         if (data === null || data === undefined) {
             if (def)
                 return this.successJSON(def);
-            else if (__1.ForgeDB.defaults && name in __1.ForgeDB.defaults) {
-                const defData = __1.ForgeDB.defaults[name];
+            else if (__1.DB.defaults && name in __1.DB.defaults) {
+                const defData = __1.DB.defaults[name];
                 if ("functions" in defData) {
                     const d = defData;
                     // Run

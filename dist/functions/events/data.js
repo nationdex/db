@@ -19,7 +19,7 @@ exports.default = new forgescript_1.NativeFunction({
     ],
     brackets: true,
     async execute(ctx, [type]) {
-        //@ts-expect-error
+        //@ts-ignore
         return this.success(ctx.runtime.extras.data[util_1.DataType[type].toString()]);
     },
 });

@@ -1,180 +1,131 @@
-import type { TypedEmitter } from "tiny-typed-emitter"
-import type { TransformEvents } from ".."
-import type { IDBEvents } from "../structures"
-import type { DBEmitter, IDBDriver } from "./drivers"
-import { createDriver } from "./drivers"
-import type { GuildData, IDataBaseOptions, RecordData, SQLiteRecord } from "./types"
+import { Cooldown, GuildData, IDataBaseOptions, MongoCooldown, MongoRecord, MySQLRecord, PostgreSQLRecord, RecordData, SQLiteRecord } from "./types"
+import { DataSource } from "typeorm"
+import { TypedEmitter } from "tiny-typed-emitter"
+import { IDBEvents } from "../structures"
+import { TransformEvents } from ".."
+import "reflect-metadata"
+import { DataBaseManager } from "./databaseManager"
 
 function isGuildData(data: RecordData): data is GuildData {
     return ["member", "channel", "role"].includes(data.type!)
 }
 
-/**
- * Static facade for all database operations.
- *
- * This class delegates every I/O call to an `IDBDriver` instance selected
- * at construction time based on `IDataBaseOptions.type`. The available
- * drivers are:
- *
- * - `TypeORMDriver` — SQLite, MySQL, PostgreSQL, MongoDB (via TypeORM)
- * - `SurrealDriver` — SurrealDB (via the `surrealdb` SDK, remote or embedded)
- *
- * All 70+ function files in `src/functions/` call `DataBase.*` statics
- * exclusively, so the driver swap is completely transparent to them.
- *
- * The pure helper functions `make_intetifier` and `make_cdIdentifier`
- * remain on this class — they don't touch the database and are shared
- * by every driver.
- */
-export class DataBase {
-    /**
-     * The active driver instance.
-     *
-     * Set once during `init()` and used by all static delegate methods.
-     */
-    private static driver: IDBDriver
-
-    /**
-     * The configured backend type.
-     *
-     * Preserved for backwards compatibility — some external code may
-     * inspect `DataBase.type` to determine which database is in use.
-     */
-    public static type: IDataBaseOptions["type"]
-
-    /** Emitter instance, stored for `init()` to fire the `connect` event. */
-    private static emitter: TypedEmitter<TransformEvents<IDBEvents>>
-
-    constructor(emitter: TypedEmitter<TransformEvents<IDBEvents>>, options?: IDataBaseOptions) {
-        const opts = options ?? { type: "sqlite" }
-        DataBase.type = opts.type
-        DataBase.emitter = emitter
-        // The driver receives the emitter so it can emit events.
-        DataBase.driver = createDriver(opts, emitter as DBEmitter)
+type AnyRecord = typeof SQLiteRecord | typeof MongoRecord | typeof MySQLRecord | typeof PostgreSQLRecord
+type AnyCooldown = typeof MongoCooldown | typeof Cooldown
+export class DataBase extends DataBaseManager {
+    public database = "db"
+    public entityManager = {
+        sqlite: [SQLiteRecord, Cooldown],
+        mongodb: [MongoRecord, MongoCooldown],
+        mysql: [MySQLRecord, Cooldown],
+        postgres: [PostgreSQLRecord, Cooldown],
+    }
+    private static entities: {
+        Record: typeof SQLiteRecord | typeof MySQLRecord | typeof PostgreSQLRecord | typeof MongoRecord
+        Cooldown: typeof Cooldown | typeof MongoCooldown
     }
 
-    /** Initialise the underlying driver connection and emit `connect`. */
+    private db: Promise<DataSource>
+    private static db: DataSource
+    private static emitter: TypedEmitter<TransformEvents<IDBEvents>>
+
+    constructor(
+        private emitter: TypedEmitter<TransformEvents<IDBEvents>>,
+        options?: IDataBaseOptions
+    ) {
+        super(options ?? {type: "sqlite"})
+        this.type = options?.type  || "sqlite"
+        this.db = this.getDB()
+        DataBase.entities = {
+            Record: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][0] as AnyRecord,
+            Cooldown: this.entityManager[this.type == "better-sqlite3" ? "sqlite" : this.type][1] as AnyCooldown,
+        }
+    }
+
     public async init() {
-        await DataBase.driver.init()
+        DataBase.emitter = this.emitter
+        DataBase.db = await this.db
         DataBase.emitter.emit("connect")
     }
 
-    /* ------------------------------------------------------------------ *
-     * Pure helpers (no I/O) — shared by all drivers
-     * ------------------------------------------------------------------ */
-
     public static make_intetifier(data: RecordData) {
-        return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`
+        return `${data.type}_${data.name}_${isGuildData(data) ? data.guildId + "_" : ""}${data.id}`
     }
-
-    public static make_cdIdentifier(data: { name?: string; id?: string }) {
-        return `${data.name}${data.id ? `_${data.id}` : ""}`
-    }
-
-    /**
-     * Sanitize a single record for cross-driver portability.
-     *
-     * - Ensures `value` is always a string (objects are JSON-stringified).
-     * - Converts `null` id / guildId to `undefined`.
-     * - Computes `identifier` when missing.
-     * - Validates that `name` and `type` are present.
-     */
-    public static normalizeRecord(record: RecordData): RecordData {
-        const name = record.name ?? undefined
-        const type = record.type ?? undefined
-
-        // Convert null → undefined for id and guildId.
-        const id = record.id ?? undefined
-        const guildId = isGuildData(record) ? (record.guildId ?? undefined) : undefined
-
-        // Ensure value is always a string.
-        let value: string
-        if (record.value === null || record.value === undefined) {
-            value = ""
-        } else if (typeof record.value === "object") {
-            value = JSON.stringify(record.value)
-        } else {
-            value = String(record.value)
-        }
-
-        const normalized: RecordData = { name, id, type, value } as RecordData
-        if (guildId) (normalized as any).guildId = guildId
-
-        // Preserve or compute the identifier.
-        normalized.identifier = record.identifier ?? DataBase.make_intetifier(normalized)
-
-        return normalized
-    }
-
-    /**
-     * Normalize an array of records for bulk import.
-     */
-    public static normalizeRecords(records: RecordData[]): RecordData[] {
-        return records.map((r) => DataBase.normalizeRecord(r))
-    }
-
-    /* ------------------------------------------------------------------ *
-     * Record CRUD — delegates to driver
-     * ------------------------------------------------------------------ */
 
     public static async set(data: RecordData) {
-        await DataBase.driver.set(data)
+        const newData = new this.entities.Record()
+        newData.identifier = this.make_intetifier(data)
+        newData.name = data.name!
+        newData.id = data.id!
+        newData.type = data.type!
+        newData.value = data.value!
+        if (isGuildData(data)) newData.guildId = data.guildId
+        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) })) as SQLiteRecord
+        if (oldData && this.type == "mongodb") {
+            this.emitter.emit("variableUpdate", { newData, oldData })
+            this.db.getRepository(this.entities.Record).update(oldData, newData)
+        } else {
+            oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData })
+            await this.db.getRepository(this.entities.Record).save(newData)
+        }
     }
 
     public static async get(data: RecordData) {
-        return await DataBase.driver.get(data)
+        const identifier = data.identifier ?? this.make_intetifier(data)
+        return await this.db.getRepository(this.entities.Record).findOneBy({ identifier })
     }
 
-    public static async getAll(): Promise<SQLiteRecord[]> {
-        return await DataBase.driver.getAll()
+    public static async getAll() {
+        return await this.db.getRepository(this.entities.Record).find()
     }
 
-    public static async find(data?: RecordData): Promise<SQLiteRecord[]> {
-        return await DataBase.driver.find(data)
+    public static async find(data?: RecordData) {
+        return await this.db.getRepository(this.entities.Record).find({
+            where: { ...data },
+        })
     }
 
     public static async delete(data: RecordData) {
-        await DataBase.driver.delete(data)
+        const identifier = data.identifier ?? this.make_intetifier(data)
+        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) as SQLiteRecord })
+        return await this.db.getRepository(this.entities.Record).delete({ identifier })
     }
 
     public static async wipe() {
-        await DataBase.driver.wipe()
+        return await this.db.getRepository(this.entities.Record).clear()
     }
-
-    public static async importRecords(records: RecordData[]): Promise<number> {
-        const normalized = DataBase.normalizeRecords(records)
-        return await DataBase.driver.importRecords(normalized)
-    }
-
-    /* ------------------------------------------------------------------ *
-     * Cooldown CRUD — delegates to driver
-     * ------------------------------------------------------------------ */
 
     public static async cdWipe() {
-        await DataBase.driver.cdWipe()
+        return await this.db.getRepository(this.entities.Cooldown).clear()
+    }
+
+    public static make_cdIdentifier(data: { name?: string; id?: string }) {
+        return `${data.name}${data.id ? "_" + data.id : ""}`
     }
 
     public static async cdAdd(data: { name: string; id?: string; duration: number }) {
-        await DataBase.driver.cdAdd(data)
+        const cd = new this.entities.Cooldown()
+        cd.identifier = this.make_cdIdentifier(data)
+        cd.name = data.name
+        cd.id = data.id
+        cd.startedAt = Date.now()
+        cd.duration = data.duration
+
+        const oldCD = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier: this.make_cdIdentifier(data) })
+        if (oldCD && this.type == "mongodb") return await this.db.getRepository(this.entities.Cooldown).update(oldCD, cd)
+        else return await this.db.getRepository(this.entities.Cooldown).save(cd)
     }
 
     public static async cdDelete(identifier: string) {
-        await DataBase.driver.cdDelete(identifier)
+        await this.db.getRepository(this.entities.Cooldown).delete({ identifier })
     }
 
     public static async cdTimeLeft(identifier: string) {
-        return await DataBase.driver.cdTimeLeft(identifier)
+        const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier })
+        return data ? { ...data, left: Math.max(data.duration - (Date.now() - data.startedAt), 0) } : { left: 0 }
     }
-
-    /* ------------------------------------------------------------------ *
-     * Raw query + ping — delegates to driver
-     * ------------------------------------------------------------------ */
 
     public static async query(query: string) {
-        return await DataBase.driver.query(query)
-    }
-
-    public static async ping() {
-        return await DataBase.driver.ping()
+        return await this.db.query(query)
     }
 }

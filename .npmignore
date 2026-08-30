@@ -1,8 +1,0 @@
-docs
-guides
-\.env
-prisma
-*/**/__tests__
-src
-metadata
-database
