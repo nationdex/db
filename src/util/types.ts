@@ -34,16 +34,29 @@ export type IDataBaseOptions = (
           username?: string
           password?: string
           database?: string
+          folder?: string
       }
     | {
           type: "mongodb"
           url: string
+          folder?: string
+          database?: string
       }
     | {
           type: "better-sqlite3" | "sqlite"
           folder?: string
+          database?: string
       }
-) & { events?: Array<keyof IDBEvents> }
+    | {
+          type: "surrealdb"
+          folder?: string
+          url?: string
+          namespace?: string
+          database?: string
+          username?: string
+          password?: string
+      }
+) & { events?: Array<keyof IDBEvents>; folder?: string; database?: string }
 
 @Entity("record")
 export class MySQLRecord {

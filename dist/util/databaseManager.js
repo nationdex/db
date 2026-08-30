@@ -24,12 +24,48 @@ class DataBaseManager {
         const data = { ...config };
         let db;
         switch (data.type) {
+            case "surrealdb": {
+                const { Surreal, createRemoteEngines } = require("surrealdb");
+                let engines = {};
+                try {
+                    const { createNodeEngines } = await (Function('return import("@surrealdb/node")')());
+                    if (createNodeEngines)
+                        engines = { ...engines, ...createNodeEngines() };
+                }
+                catch { }
+                try {
+                    if (typeof createRemoteEngines === "function") {
+                        engines = { ...engines, ...createRemoteEngines() };
+                    }
+                }
+                catch { }
+                const surreal = new Surreal({ engines });
+                const endpoint = data.url ?? `surrealkv://${data.folder ?? "database"}`;
+                await surreal.connect(endpoint);
+                await surreal.use({
+                    namespace: data.namespace ?? "nationdex",
+                    database: data.database ?? "db"
+                });
+                if (data.username && data.password) {
+                    await surreal.signin({
+                        username: data.username,
+                        password: data.password
+                    });
+                }
+                await surreal.query(`
+                    DEFINE TABLE IF NOT EXISTS record SCHEMALESS;
+                    DEFINE TABLE IF NOT EXISTS cooldown SCHEMALESS;
+                `);
+                db = surreal;
+                break;
+            }
             case "mysql":
                 db = new typeorm_1.DataSource({
                     ...data,
                     entities: this.entityManager.mysql,
                     synchronize: true,
                 });
+                db = await db.initialize();
                 break;
             case "postgres":
                 db = new typeorm_1.DataSource({
@@ -37,6 +73,7 @@ class DataBaseManager {
                     entities: this.entityManager.postgres,
                     synchronize: true,
                 });
+                db = await db.initialize();
                 break;
             case "mongodb":
                 db = new typeorm_1.DataSource({
@@ -44,6 +81,7 @@ class DataBaseManager {
                     entities: this.entityManager.mongodb,
                     synchronize: true,
                 });
+                db = await db.initialize();
                 break;
             default:
                 db = new typeorm_1.DataSource({
@@ -52,9 +90,9 @@ class DataBaseManager {
                     synchronize: true,
                     database: `${data.folder ?? "database"}/${this.database}`,
                 });
+                db = await db.initialize();
                 break;
         }
-        db = await db.initialize();
         activeDataBases.push({ name: this.database, db });
         return db;
     }

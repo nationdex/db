@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { IDataBaseOptions } from "./types";
-import { DataSource, EntitySchema, MixedList } from "typeorm";
+import { EntitySchema, MixedList } from "typeorm";
 export declare abstract class DataBaseManager {
     abstract database: string;
     abstract entityManager: {
@@ -12,7 +12,7 @@ export declare abstract class DataBaseManager {
     type?: IDataBaseOptions["type"];
     static type: IDataBaseOptions["type"];
     constructor(options?: IDataBaseOptions);
-    protected getDB(): Promise<DataSource>;
+    protected getDB(): Promise<any>;
     private waitForConfig;
 }
 //# sourceMappingURL=databaseManager.d.ts.map

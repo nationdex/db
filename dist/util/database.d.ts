@@ -21,12 +21,13 @@ export declare class DataBase extends DataBaseManager {
     init(): Promise<void>;
     static make_intetifier(data: RecordData): string;
     static set(data: RecordData): Promise<void>;
+    private static formatSurrealRecord;
     static get(data: RecordData): Promise<SQLiteRecord | null>;
     static getAll(): Promise<SQLiteRecord[]>;
-    static find(data?: RecordData): Promise<SQLiteRecord[]>;
-    static delete(data: RecordData): Promise<import("typeorm").DeleteResult>;
-    static wipe(): Promise<void>;
-    static cdWipe(): Promise<void>;
+    static find(data?: RecordData | any): Promise<SQLiteRecord[]>;
+    static delete(data: RecordData): Promise<any>;
+    static wipe(): Promise<any>;
+    static cdWipe(): Promise<any>;
     static make_cdIdentifier(data: {
         name?: string;
         id?: string;
@@ -35,18 +36,9 @@ export declare class DataBase extends DataBaseManager {
         name: string;
         id?: string;
         duration: number;
-    }): Promise<Cooldown | import("typeorm").UpdateResult>;
-    static cdDelete(identifier: string): Promise<void>;
-    static cdTimeLeft(identifier: string): Promise<{
-        left: number;
-        identifier: string;
-        name: string;
-        id?: string | undefined;
-        startedAt: number;
-        duration: number;
-    } | {
-        left: number;
-    }>;
+    }): Promise<any>;
+    static cdDelete(identifier: string): Promise<any>;
+    static cdTimeLeft(identifier: string): Promise<any>;
     static query(query: string): Promise<any>;
 }
 //# sourceMappingURL=database.d.ts.map
