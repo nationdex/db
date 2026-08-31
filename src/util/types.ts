@@ -37,17 +37,6 @@ export type IDataBaseOptions = (
           folder?: string
       }
     | {
-          type: "mongodb"
-          url: string
-          folder?: string
-          database?: string
-      }
-    | {
-          type: "better-sqlite3" | "sqlite"
-          folder?: string
-          database?: string
-      }
-    | {
           type: "surrealdb"
           folder?: string
           url?: string
@@ -100,27 +89,6 @@ export class PostgreSQLRecord {
     guildId?: string
 }
 
-@Entity("record")
-export class SQLiteRecord {
-    @PrimaryColumn()
-    identifier!: string
-
-    @Column()
-    name!: string
-
-    @Column({ nullable: true })
-    id!: string
-
-    @Column()
-    type!: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old"
-
-    @Column()
-    value!: string
-
-    @Column({ nullable: true })
-    guildId?: string
-}
-
 export type BaseData = {
     identifier?: string
     name?: string
@@ -132,6 +100,8 @@ export type GuildData = BaseData & { type?: "member" | "channel" | "role"; guild
 export type NonGuildData = BaseData & { type?: "user" | "message" | "custom" | "guild" | "old" }
 
 export type RecordData = BaseData & (GuildData | NonGuildData)
+
+export type DBRecord = MySQLRecord
 
 @Entity()
 export class Cooldown {
@@ -145,7 +115,7 @@ export class Cooldown {
     id?: string
 
     @Column()
-    startedAt!: number
+    startedAt!: string
 
     @Column()
     duration!: number
@@ -155,18 +125,6 @@ export type CooldownData = {
     identifier?: string
     name?: string
     id?: string
-    startedAt?: number
+    startedAt?: string
     duration?: number
-}
-
-@Entity()
-export class MongoRecord extends SQLiteRecord {
-    @ObjectIdColumn()
-    mongoId?: string
-}
-
-@Entity()
-export class MongoCooldown extends Cooldown {
-    @ObjectIdColumn()
-    mongoId?: string
 }

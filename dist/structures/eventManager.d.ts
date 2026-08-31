@@ -1,21 +1,21 @@
 import { BaseEventHandler, ForgeClient } from "@tryforge/forgescript";
-import { RecordData, SQLiteRecord } from "../util";
+import { DBRecord } from "../util";
 export interface IDBEvents {
     connect: [];
     variableCreate: [
         {
-            data: RecordData | SQLiteRecord | null;
+            data: DBRecord | null;
         }
     ];
     variableDelete: [
         {
-            data: RecordData | SQLiteRecord | null;
+            data: DBRecord | null;
         }
     ];
     variableUpdate: [
         {
-            newData: RecordData | SQLiteRecord | null;
-            oldData: RecordData | SQLiteRecord | null;
+            newData: DBRecord | null;
+            oldData: DBRecord | null;
         }
     ];
 }

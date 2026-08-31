@@ -10,7 +10,7 @@ class DataBaseManager {
     static type;
     constructor(options) {
         if (!config && options) {
-            options.type = options.type ?? "sqlite";
+            options.type = options.type ?? "surrealdb";
             config = options;
         }
     }
@@ -75,23 +75,8 @@ class DataBaseManager {
                 });
                 db = await db.initialize();
                 break;
-            case "mongodb":
-                db = new typeorm_1.DataSource({
-                    ...data,
-                    entities: this.entityManager.mongodb,
-                    synchronize: true,
-                });
-                db = await db.initialize();
-                break;
             default:
-                db = new typeorm_1.DataSource({
-                    ...data,
-                    entities: this.entityManager.sqlite,
-                    synchronize: true,
-                    database: `${data.folder ?? "database"}/${this.database}`,
-                });
-                db = await db.initialize();
-                break;
+                throw new Error(`Unsupported database type "${data.type}". Supported types are: surrealdb, postgres, mysql.`);
         }
         activeDataBases.push({ name: this.database, db });
         return db;

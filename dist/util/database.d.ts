@@ -1,4 +1,4 @@
-import { Cooldown, IDataBaseOptions, MongoCooldown, MongoRecord, MySQLRecord, PostgreSQLRecord, RecordData, SQLiteRecord } from "./types";
+import { Cooldown, DBRecord, IDataBaseOptions, MySQLRecord, PostgreSQLRecord, RecordData } from "./types";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { IDBEvents } from "../structures";
 import { TransformEvents } from "..";
@@ -8,8 +8,6 @@ export declare class DataBase extends DataBaseManager {
     private emitter;
     database: string;
     entityManager: {
-        sqlite: (typeof SQLiteRecord | typeof Cooldown)[];
-        mongodb: (typeof MongoRecord | typeof MongoCooldown)[];
         mysql: (typeof MySQLRecord | typeof Cooldown)[];
         postgres: (typeof PostgreSQLRecord | typeof Cooldown)[];
     };
@@ -22,9 +20,9 @@ export declare class DataBase extends DataBaseManager {
     static make_intetifier(data: RecordData): string;
     static set(data: RecordData): Promise<void>;
     private static formatSurrealRecord;
-    static get(data: RecordData): Promise<SQLiteRecord | null>;
-    static getAll(): Promise<SQLiteRecord[]>;
-    static find(data?: RecordData | any): Promise<SQLiteRecord[]>;
+    static get(data: RecordData): Promise<DBRecord | null>;
+    static getAll(): Promise<DBRecord[]>;
+    static find(data?: RecordData | any): Promise<DBRecord[]>;
     static delete(data: RecordData): Promise<any>;
     static wipe(): Promise<any>;
     static cdWipe(): Promise<any>;

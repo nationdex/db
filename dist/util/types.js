@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MongoCooldown = exports.MongoRecord = exports.Cooldown = exports.SQLiteRecord = exports.PostgreSQLRecord = exports.MySQLRecord = exports.VariableType = exports.DataType = exports.SortType = void 0;
+exports.Cooldown = exports.PostgreSQLRecord = exports.MySQLRecord = exports.VariableType = exports.DataType = exports.SortType = void 0;
 const typeorm_1 = require("typeorm");
 var SortType;
 (function (SortType) {
@@ -107,42 +107,6 @@ __decorate([
 exports.PostgreSQLRecord = PostgreSQLRecord = __decorate([
     (0, typeorm_1.Entity)("record")
 ], PostgreSQLRecord);
-let SQLiteRecord = class SQLiteRecord {
-    identifier;
-    name;
-    id;
-    type;
-    value;
-    guildId;
-};
-exports.SQLiteRecord = SQLiteRecord;
-__decorate([
-    (0, typeorm_1.PrimaryColumn)(),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "identifier", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "name", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "id", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "type", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "value", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], SQLiteRecord.prototype, "guildId", void 0);
-exports.SQLiteRecord = SQLiteRecord = __decorate([
-    (0, typeorm_1.Entity)("record")
-], SQLiteRecord);
 let Cooldown = class Cooldown {
     identifier;
     name;
@@ -165,7 +129,7 @@ __decorate([
 ], Cooldown.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], Cooldown.prototype, "startedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
@@ -174,26 +138,4 @@ __decorate([
 exports.Cooldown = Cooldown = __decorate([
     (0, typeorm_1.Entity)()
 ], Cooldown);
-let MongoRecord = class MongoRecord extends SQLiteRecord {
-    mongoId;
-};
-exports.MongoRecord = MongoRecord;
-__decorate([
-    (0, typeorm_1.ObjectIdColumn)(),
-    __metadata("design:type", String)
-], MongoRecord.prototype, "mongoId", void 0);
-exports.MongoRecord = MongoRecord = __decorate([
-    (0, typeorm_1.Entity)()
-], MongoRecord);
-let MongoCooldown = class MongoCooldown extends Cooldown {
-    mongoId;
-};
-exports.MongoCooldown = MongoCooldown;
-__decorate([
-    (0, typeorm_1.ObjectIdColumn)(),
-    __metadata("design:type", String)
-], MongoCooldown.prototype, "mongoId", void 0);
-exports.MongoCooldown = MongoCooldown = __decorate([
-    (0, typeorm_1.Entity)()
-], MongoCooldown);
 //# sourceMappingURL=types.js.map

@@ -4,8 +4,6 @@ import { EntitySchema, MixedList } from "typeorm";
 export declare abstract class DataBaseManager {
     abstract database: string;
     abstract entityManager: {
-        sqlite: MixedList<Function | string | EntitySchema>;
-        mongodb: MixedList<Function | string | EntitySchema>;
         mysql: MixedList<Function | string | EntitySchema>;
         postgres: MixedList<Function | string | EntitySchema>;
     };

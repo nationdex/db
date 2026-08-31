@@ -30,15 +30,6 @@ export type IDataBaseOptions = ({
     database?: string;
     folder?: string;
 } | {
-    type: "mongodb";
-    url: string;
-    folder?: string;
-    database?: string;
-} | {
-    type: "better-sqlite3" | "sqlite";
-    folder?: string;
-    database?: string;
-} | {
     type: "surrealdb";
     folder?: string;
     url?: string;
@@ -67,14 +58,6 @@ export declare class PostgreSQLRecord {
     value: string;
     guildId?: string;
 }
-export declare class SQLiteRecord {
-    identifier: string;
-    name: string;
-    id: string;
-    type: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old";
-    value: string;
-    guildId?: string;
-}
 export type BaseData = {
     identifier?: string;
     name?: string;
@@ -89,24 +72,19 @@ export type NonGuildData = BaseData & {
     type?: "user" | "message" | "custom" | "guild" | "old";
 };
 export type RecordData = BaseData & (GuildData | NonGuildData);
+export type DBRecord = MySQLRecord;
 export declare class Cooldown {
     identifier: string;
     name: string;
     id?: string;
-    startedAt: number;
+    startedAt: string;
     duration: number;
 }
 export type CooldownData = {
     identifier?: string;
     name?: string;
     id?: string;
-    startedAt?: number;
+    startedAt?: string;
     duration?: number;
 };
-export declare class MongoRecord extends SQLiteRecord {
-    mongoId?: string;
-}
-export declare class MongoCooldown extends Cooldown {
-    mongoId?: string;
-}
 //# sourceMappingURL=types.d.ts.map

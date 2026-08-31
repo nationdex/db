@@ -1,5 +1,5 @@
-import { Cooldown, GuildData, IDataBaseOptions, MongoCooldown, MongoRecord, MySQLRecord, PostgreSQLRecord, RecordData, SQLiteRecord } from "./types"
-import { DataSource } from "typeorm"
+import { Cooldown, DBRecord, GuildData, IDataBaseOptions, MySQLRecord, PostgreSQLRecord, RecordData } from "./types"
+import { DataSource, Timestamp } from "typeorm"
 import { TypedEmitter } from "tiny-typed-emitter"
 import { IDBEvents } from "../structures"
 import { TransformEvents } from ".."
@@ -10,19 +10,17 @@ function isGuildData(data: RecordData): data is GuildData {
     return ["member", "channel", "role"].includes(data.type!)
 }
 
-type AnyRecord = typeof SQLiteRecord | typeof MongoRecord | typeof MySQLRecord | typeof PostgreSQLRecord
-type AnyCooldown = typeof MongoCooldown | typeof Cooldown
+type AnyRecord = typeof MySQLRecord | typeof PostgreSQLRecord
+type AnyCooldown = typeof Cooldown
 export class DataBase extends DataBaseManager {
     public database = "db"
     public entityManager = {
-        sqlite: [SQLiteRecord, Cooldown],
-        mongodb: [MongoRecord, MongoCooldown],
         mysql: [MySQLRecord, Cooldown],
         postgres: [PostgreSQLRecord, Cooldown],
     }
     private static entities: {
-        Record: typeof SQLiteRecord | typeof MySQLRecord | typeof PostgreSQLRecord | typeof MongoRecord
-        Cooldown: typeof Cooldown | typeof MongoCooldown
+        Record: typeof MySQLRecord | typeof PostgreSQLRecord
+        Cooldown: typeof Cooldown
     }
 
     private db: Promise<any>
@@ -33,10 +31,10 @@ export class DataBase extends DataBaseManager {
         private emitter: TypedEmitter<TransformEvents<IDBEvents>>,
         options?: IDataBaseOptions
     ) {
-        super(options ?? {type: "sqlite"})
-        this.type = options?.type || "sqlite"
+        super(options ?? {type: "surrealdb"})
+        this.type = options?.type || "surrealdb"
         this.db = this.getDB()
-        const entityKey = (this.type === "better-sqlite3" || this.type === "surrealdb" || !(this.type in this.entityManager)) ? "sqlite" : this.type
+        const entityKey = (this.type === "mysql" || this.type === "postgres") ? this.type : "mysql"
         DataBase.entities = {
             Record: this.entityManager[entityKey][0] as AnyRecord,
             Cooldown: this.entityManager[entityKey][1] as AnyCooldown,
@@ -85,17 +83,12 @@ export class DataBase extends DataBaseManager {
         newData.type = data.type!
         newData.value = data.value!
         if (isGuildData(data)) newData.guildId = data.guildId
-        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) })) as SQLiteRecord
-        if (oldData && this.type == "mongodb") {
-            this.emitter.emit("variableUpdate", { newData, oldData })
-            this.db.getRepository(this.entities.Record).update(oldData, newData)
-        } else {
-            oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData })
-            await this.db.getRepository(this.entities.Record).save(newData)
-        }
+        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) })) as DBRecord
+        oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData })
+        await this.db.getRepository(this.entities.Record).save(newData)
     }
 
-    private static formatSurrealRecord(rec: any): SQLiteRecord {
+    private static formatSurrealRecord(rec: any): DBRecord {
         if (!rec) return rec
         return {
             ...rec,
@@ -103,7 +96,7 @@ export class DataBase extends DataBaseManager {
         }
     }
 
-    public static async get(data: RecordData): Promise<SQLiteRecord | null> {
+    public static async get(data: RecordData): Promise<DBRecord | null> {
         const identifier = data.identifier ?? this.make_intetifier(data)
         if (this.type === "surrealdb") {
             const { RecordId } = require("surrealdb")
@@ -118,7 +111,7 @@ export class DataBase extends DataBaseManager {
         return await this.db.getRepository(this.entities.Record).findOneBy({ identifier })
     }
 
-    public static async getAll(): Promise<SQLiteRecord[]> {
+    public static async getAll(): Promise<DBRecord[]> {
         if (this.type === "surrealdb") {
             try {
                 const [records] = (await this.db.query("SELECT * FROM record;")) as [any[]]
@@ -131,7 +124,7 @@ export class DataBase extends DataBaseManager {
         return await this.db.getRepository(this.entities.Record).find()
     }
 
-    public static async find(data?: RecordData | any): Promise<SQLiteRecord[]> {
+    public static async find(data?: RecordData | any): Promise<DBRecord[]> {
         if (this.type === "surrealdb") {
             let records: any[] = []
             try {
@@ -149,11 +142,11 @@ export class DataBase extends DataBaseManager {
                     if (val && typeof val === "object" && ("_type" in (val as any) || "value" in (val as any))) {
                         const pattern = (val as any)._value ?? (val as any).value
                         if (typeof pattern === "string") {
-                            const target = String(rec[key as keyof SQLiteRecord] ?? "")
+                            const target = String(rec[key as keyof DBRecord] ?? "")
                             const regexStr = "^" + pattern.replace(/[%_]/g, (m) => (m === "%" ? ".*" : ".")) + "$"
                             if (!new RegExp(regexStr, "i").test(target)) return false
                         }
-                    } else if (rec[key as keyof SQLiteRecord] !== val) {
+                    } else if (rec[key as keyof DBRecord] !== val) {
                         return false
                     }
                 }
@@ -177,7 +170,7 @@ export class DataBase extends DataBaseManager {
                 throw err
             }
         }
-        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) as SQLiteRecord })
+        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) as DBRecord })
         return await this.db.getRepository(this.entities.Record).delete({ identifier })
     }
 
@@ -216,7 +209,7 @@ export class DataBase extends DataBaseManager {
                 identifier,
                 name: data.name,
                 targetId: data.id,
-                startedAt: Date.now(),
+                startedAt: Date.now().toString(),
                 duration: data.duration,
             }
             return await this.db.query("UPSERT type::record('cooldown', $id) MERGE $data;", {
@@ -229,12 +222,10 @@ export class DataBase extends DataBaseManager {
         cd.identifier = this.make_cdIdentifier(data)
         cd.name = data.name
         cd.id = data.id
-        cd.startedAt = Date.now()
+        cd.startedAt = Date.now().toString()
         cd.duration = data.duration
 
-        const oldCD = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier: this.make_cdIdentifier(data) })
-        if (oldCD && this.type == "mongodb") return await this.db.getRepository(this.entities.Cooldown).update(oldCD, cd)
-        else return await this.db.getRepository(this.entities.Cooldown).save(cd)
+        return await this.db.getRepository(this.entities.Cooldown).save(cd)
     }
 
     public static async cdDelete(identifier: string) {
@@ -255,10 +246,11 @@ export class DataBase extends DataBaseManager {
                 const [res] = (await this.db.query("SELECT * FROM cooldown WHERE identifier = $id LIMIT 1;", { id: identifier })) as [any[]]
                 const data = res && res.length ? res[0] : null
                 if (!data) return { left: 0 }
+                const startedAt = Number(data.startedAt)
                 return {
                     ...data,
                     id: data.targetId !== undefined ? data.targetId : (data.id && typeof data.id === "object" ? data.id.id : data.id),
-                    left: Math.max(data.duration - (Date.now() - data.startedAt), 0)
+                    left: Math.max(data.duration - (Date.now() - startedAt), 0)
                 }
             } catch (err: any) {
                 if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return { left: 0 }
@@ -266,7 +258,9 @@ export class DataBase extends DataBaseManager {
             }
         }
         const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier })
-        return data ? { ...data, left: Math.max(data.duration - (Date.now() - data.startedAt), 0) } : { left: 0 }
+        if (!data) return { left: 0 }
+        const startedAt = Number(data.startedAt)
+        return { ...data, left: Math.max(data.duration - (Date.now() - startedAt), 0) }
     }
 
     public static async query(query: string) {

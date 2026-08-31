@@ -8,8 +8,6 @@ let config: IDataBaseOptions;
 export abstract class DataBaseManager {
     public abstract database: string
     public abstract entityManager: {
-        sqlite: MixedList<Function | string | EntitySchema>
-        mongodb: MixedList<Function | string | EntitySchema>
         mysql: MixedList<Function | string | EntitySchema>
         postgres: MixedList<Function | string | EntitySchema>
     }
@@ -19,7 +17,7 @@ export abstract class DataBaseManager {
 
     constructor(options?: IDataBaseOptions) {
         if (!config && options) {
-            options.type = options.type ?? "sqlite"
+            options.type = options.type ?? "surrealdb"
             config = options
         }
     }
@@ -82,23 +80,8 @@ export abstract class DataBaseManager {
                 })
                 db = await db.initialize()
                 break;
-            case "mongodb":
-                db = new DataSource({
-                    ...data,
-                    entities: this.entityManager.mongodb,
-                    synchronize: true,
-                })
-                db = await db.initialize()
-                break;
             default:
-                db = new DataSource({
-                    ...data,
-                    entities: this.entityManager.sqlite,
-                    synchronize: true,
-                    database: `${data.folder ?? "database"}/${this.database}`,
-                })
-                db = await db.initialize()
-                break;
+                throw new Error(`Unsupported database type "${(data as any).type}". Supported types are: surrealdb, postgres, mysql.`)
         }
         activeDataBases.push({ name: this.database, db })
         return db
