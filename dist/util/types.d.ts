@@ -32,6 +32,7 @@ export type IDataBaseOptions = ({
 } | {
     type: "surrealdb";
     folder?: string;
+    engine?: "rocksdb" | "surrealkv" | "mem" | string;
     url?: string;
     namespace?: string;
     database?: string;
@@ -41,6 +42,7 @@ export type IDataBaseOptions = ({
     events?: Array<keyof IDBEvents>;
     folder?: string;
     database?: string;
+    engine?: string;
 };
 export declare class MySQLRecord {
     identifier: string;

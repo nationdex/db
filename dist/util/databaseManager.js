@@ -40,7 +40,8 @@ class DataBaseManager {
                 }
                 catch { }
                 const surreal = new Surreal({ engines });
-                const endpoint = data.url ?? `surrealkv://${data.folder ?? "database"}`;
+                const engine = data.engine ?? "surrealkv";
+                const endpoint = data.url ?? `${engine}://${data.folder ?? "database"}`;
                 await surreal.connect(endpoint);
                 await surreal.use({
                     namespace: data.namespace ?? "nationdex",

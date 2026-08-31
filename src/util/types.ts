@@ -39,13 +39,14 @@ export type IDataBaseOptions = (
     | {
           type: "surrealdb"
           folder?: string
+          engine?: "rocksdb" | "surrealkv" | "mem" | string
           url?: string
           namespace?: string
           database?: string
           username?: string
           password?: string
       }
-) & { events?: Array<keyof IDBEvents>; folder?: string; database?: string }
+) & { events?: Array<keyof IDBEvents>; folder?: string; database?: string; engine?: string }
 
 @Entity("record")
 export class MySQLRecord {
