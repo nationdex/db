@@ -57,7 +57,7 @@ class DataBase extends databaseManager_1.DataBaseManager {
             else {
                 this.emitter.emit("variableCreate", { data: eventData });
             }
-            await this.db.query("UPSERT type::record('record', $id) MERGE $data;", {
+            await this.db.query("UPSERT type::thing('record', $id) MERGE $data;", {
                 id: identifier,
                 data: newData,
             });
@@ -208,7 +208,7 @@ class DataBase extends databaseManager_1.DataBaseManager {
                 startedAt: Date.now().toString(),
                 duration: data.duration,
             };
-            return await this.db.query("UPSERT type::record('cooldown', $id) MERGE $data;", {
+            return await this.db.query("UPSERT type::thing('cooldown', $id) MERGE $data;", {
                 id: identifier,
                 data: cd,
             });

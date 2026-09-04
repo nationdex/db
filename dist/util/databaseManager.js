@@ -18,8 +18,9 @@ class DataBaseManager {
         await this.waitForConfig();
         this.type = config.type;
         DataBaseManager.type = this.type;
-        const check = activeDataBases.find((s) => s.name === this.database);
-        if (check) return check.db;
+        const check = activeDataBases.find((s) => s.name == this.database);
+        if (check?.name == this.database)
+            return check.db;
         const data = { ...config };
         let db;
         switch (data.type) {
