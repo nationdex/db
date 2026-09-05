@@ -1,267 +1,166 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataBase = void 0;
-const types_1 = require("./types");
-require("reflect-metadata");
-const databaseManager_1 = require("./databaseManager");
+exports.DataBase = exports.Like = void 0;
+const pglite_1 = require("@electric-sql/pglite");
 function isGuildData(data) {
     return ["member", "channel", "role"].includes(data.type);
 }
-class DataBase extends databaseManager_1.DataBaseManager {
-    emitter;
-    database = "db";
-    entityManager = {
-        mysql: [types_1.MySQLRecord, types_1.Cooldown],
-        postgres: [types_1.PostgreSQLRecord, types_1.Cooldown],
+function Like(pattern) {
+    return { __like: true, pattern };
+}
+exports.Like = Like;
+function isLike(value) {
+    return typeof value === "object" && value !== null && value.__like === true;
+}
+const COLUMN_MAP = { guildId: "guild_id" };
+const RECORD_COLUMNS = new Set(["identifier", "name", "id", "type", "value", "guild_id"]);
+function rowToRecord(row) {
+    if (!row)
+        return null;
+    return {
+        identifier: row.identifier,
+        name: row.name,
+        id: row.id ?? undefined,
+        type: row.type,
+        value: row.value,
+        guildId: row.guild_id ?? undefined,
     };
-    static entities;
-    db;
-    static db;
+}
+function rowToCooldown(row) {
+    if (!row)
+        return null;
+    return {
+        identifier: row.identifier,
+        name: row.name,
+        id: row.id ?? undefined,
+        startedAt: row.started_at,
+        duration: Number(row.duration),
+    };
+}
+/**
+ * Static facade backed by an embedded PGlite (WASM Postgres) instance.
+ *
+ * All 70+ function files in `src/functions/` call these statics exclusively.
+ */
+class DataBase {
+    emitter;
+    options;
+    static pg;
     static emitter;
     constructor(emitter, options) {
-        super(options ?? { type: "surrealdb" });
         this.emitter = emitter;
-        this.type = options?.type || "surrealdb";
-        this.db = this.getDB();
-        const entityKey = (this.type === "mysql" || this.type === "postgres") ? this.type : "mysql";
-        DataBase.entities = {
-            Record: this.entityManager[entityKey][0],
-            Cooldown: this.entityManager[entityKey][1],
-        };
+        this.options = options;
     }
     async init() {
         DataBase.emitter = this.emitter;
-        DataBase.db = await this.db;
+        DataBase.pg = new pglite_1.PGlite(this.options?.memory ? undefined : (this.options?.folder ?? "database"));
+        await DataBase.pg.waitReady;
+        await DataBase.pg.exec(`
+            CREATE TABLE IF NOT EXISTS record (
+                identifier TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                id TEXT,
+                type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                guild_id TEXT
+            );
+            CREATE TABLE IF NOT EXISTS cooldown (
+                identifier TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                id TEXT,
+                started_at TEXT NOT NULL,
+                duration BIGINT NOT NULL
+            );
+        `);
         DataBase.emitter.emit("connect");
     }
     static make_intetifier(data) {
-        return `${data.type}_${data.name}_${isGuildData(data) ? data.guildId + "_" : ""}${data.id}`;
+        return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`;
+    }
+    static make_cdIdentifier(data) {
+        return `${data.name}${data.id ? `_${data.id}` : ""}`;
     }
     static async set(data) {
-        if (this.type === "surrealdb") {
-            const identifier = this.make_intetifier(data);
-            const newData = {
-                identifier,
-                name: data.name,
-                targetId: data.id,
-                type: data.type,
-                value: data.value,
-            };
-            if (isGuildData(data))
-                newData.guildId = data.guildId;
-            const oldData = await this.get(data);
-            const eventData = { ...newData, id: data.id };
-            if (oldData) {
-                this.emitter.emit("variableUpdate", { newData: eventData, oldData });
-            }
-            else {
-                this.emitter.emit("variableCreate", { data: eventData });
-            }
-            await this.db.query("UPSERT type::thing('record', $id) MERGE $data;", {
-                id: identifier,
-                data: newData,
-            });
-            return;
-        }
-        const newData = new this.entities.Record();
-        newData.identifier = this.make_intetifier(data);
-        newData.name = data.name;
-        newData.id = data.id;
-        newData.type = data.type;
-        newData.value = data.value;
-        if (isGuildData(data))
-            newData.guildId = data.guildId;
-        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) }));
-        oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData });
-        await this.db.getRepository(this.entities.Record).save(newData);
-    }
-    static formatSurrealRecord(rec) {
-        if (!rec)
-            return rec;
-        return {
-            ...rec,
-            id: rec.targetId !== undefined ? rec.targetId : (rec.id && typeof rec.id === "object" ? rec.id.id : rec.id)
-        };
+        const identifier = data.identifier ?? this.make_intetifier(data);
+        const guildId = isGuildData(data) ? (data.guildId ?? null) : null;
+        const oldData = await this.get(data);
+        await this.pg.query(`INSERT INTO record (identifier, name, id, type, value, guild_id)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (identifier) DO UPDATE SET name = $2, id = $3, type = $4, value = $5, guild_id = $6`, [identifier, data.name, data.id ?? null, data.type, data.value, guildId]);
+        const newData = rowToRecord({ identifier, name: data.name, id: data.id, type: data.type, value: data.value, guild_id: guildId });
+        if (oldData)
+            this.emitter.emit("variableUpdate", { newData, oldData });
+        else
+            this.emitter.emit("variableCreate", { data: newData });
     }
     static async get(data) {
         const identifier = data.identifier ?? this.make_intetifier(data);
-        if (this.type === "surrealdb") {
-            const { RecordId } = require("surrealdb");
-            try {
-                const res = await this.db.select(new RecordId("record", identifier));
-                return res ? this.formatSurrealRecord(res) : null;
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return null;
-                throw err;
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).findOneBy({ identifier });
+        const res = await this.pg.query("SELECT * FROM record WHERE identifier = $1", [identifier]);
+        return rowToRecord(res.rows[0]);
     }
     static async getAll() {
-        if (this.type === "surrealdb") {
-            try {
-                const [records] = (await this.db.query("SELECT * FROM record;"));
-                return (records ?? []).map((r) => this.formatSurrealRecord(r));
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return [];
-                throw err;
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).find();
+        const res = await this.pg.query("SELECT * FROM record");
+        return res.rows.map(rowToRecord);
     }
     static async find(data) {
-        if (this.type === "surrealdb") {
-            let records = [];
-            try {
-                const [res] = (await this.db.query("SELECT * FROM record;"));
-                records = res ?? [];
+        if (!data || Object.keys(data).length === 0)
+            return this.getAll();
+        const conditions = [];
+        const params = [];
+        for (const [key, value] of Object.entries(data)) {
+            if (value === undefined)
+                continue;
+            const column = COLUMN_MAP[key] ?? key;
+            if (!RECORD_COLUMNS.has(column))
+                continue;
+            if (value === null) {
+                conditions.push(`${column} IS NULL`);
             }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return [];
-                throw err;
+            else if (isLike(value)) {
+                params.push(value.pattern);
+                conditions.push(`${column} LIKE $${params.length}`);
             }
-            const formatted = records.map((r) => this.formatSurrealRecord(r));
-            if (!data || Object.keys(data).length === 0)
-                return formatted;
-            return formatted.filter((rec) => {
-                for (const [key, val] of Object.entries(data)) {
-                    if (val === undefined)
-                        continue;
-                    if (val && typeof val === "object" && ("_type" in val || "value" in val)) {
-                        const pattern = val._value ?? val.value;
-                        if (typeof pattern === "string") {
-                            const target = String(rec[key] ?? "");
-                            const regexStr = "^" + pattern.replace(/[%_]/g, (m) => (m === "%" ? ".*" : ".")) + "$";
-                            if (!new RegExp(regexStr, "i").test(target))
-                                return false;
-                        }
-                    }
-                    else if (rec[key] !== val) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            else {
+                params.push(value);
+                conditions.push(`${column} = $${params.length}`);
+            }
         }
-        return await this.db.getRepository(this.entities.Record).find({
-            where: { ...data },
-        });
+        if (conditions.length === 0)
+            return this.getAll();
+        const res = await this.pg.query(`SELECT * FROM record WHERE ${conditions.join(" AND ")}`, params);
+        return res.rows.map(rowToRecord);
     }
     static async delete(data) {
         const identifier = data.identifier ?? this.make_intetifier(data);
-        if (this.type === "surrealdb") {
-            const oldData = await this.get(data);
-            this.emitter.emit("variableDelete", { data: oldData });
-            try {
-                return await this.db.query("DELETE FROM record WHERE identifier = $id;", { id: identifier });
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return null;
-                throw err;
-            }
-        }
-        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) });
-        return await this.db.getRepository(this.entities.Record).delete({ identifier });
+        const oldData = await this.get(data);
+        await this.pg.query("DELETE FROM record WHERE identifier = $1", [identifier]);
+        this.emitter.emit("variableDelete", { data: oldData });
     }
     static async wipe() {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM record;");
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return null;
-                throw err;
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).clear();
+        await this.pg.exec("DELETE FROM record");
     }
     static async cdWipe() {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM cooldown;");
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return null;
-                throw err;
-            }
-        }
-        return await this.db.getRepository(this.entities.Cooldown).clear();
-    }
-    static make_cdIdentifier(data) {
-        return `${data.name}${data.id ? "_" + data.id : ""}`;
+        await this.pg.exec("DELETE FROM cooldown");
     }
     static async cdAdd(data) {
-        if (this.type === "surrealdb") {
-            const identifier = this.make_cdIdentifier(data);
-            const cd = {
-                identifier,
-                name: data.name,
-                targetId: data.id,
-                startedAt: Date.now().toString(),
-                duration: data.duration,
-            };
-            return await this.db.query("UPSERT type::thing('cooldown', $id) MERGE $data;", {
-                id: identifier,
-                data: cd,
-            });
-        }
-        const cd = new this.entities.Cooldown();
-        cd.identifier = this.make_cdIdentifier(data);
-        cd.name = data.name;
-        cd.id = data.id;
-        cd.startedAt = Date.now().toString();
-        cd.duration = data.duration;
-        return await this.db.getRepository(this.entities.Cooldown).save(cd);
+        const identifier = this.make_cdIdentifier(data);
+        const startedAt = Date.now().toString();
+        await this.pg.query(`INSERT INTO cooldown (identifier, name, id, started_at, duration)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (identifier) DO UPDATE SET name = $2, id = $3, started_at = $4, duration = $5`, [identifier, data.name, data.id ?? null, startedAt, data.duration]);
     }
     static async cdDelete(identifier) {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM cooldown WHERE identifier = $id;", { id: identifier });
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return null;
-                throw err;
-            }
-        }
-        await this.db.getRepository(this.entities.Cooldown).delete({ identifier });
+        await this.pg.query("DELETE FROM cooldown WHERE identifier = $1", [identifier]);
     }
     static async cdTimeLeft(identifier) {
-        if (this.type === "surrealdb") {
-            try {
-                const [res] = (await this.db.query("SELECT * FROM cooldown WHERE identifier = $id LIMIT 1;", { id: identifier }));
-                const data = res && res.length ? res[0] : null;
-                if (!data)
-                    return { left: 0 };
-                const startedAt = Number(data.startedAt);
-                return {
-                    ...data,
-                    id: data.targetId !== undefined ? data.targetId : (data.id && typeof data.id === "object" ? data.id.id : data.id),
-                    left: Math.max(data.duration - (Date.now() - startedAt), 0)
-                };
-            }
-            catch (err) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist"))
-                    return { left: 0 };
-                throw err;
-            }
-        }
-        const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier });
-        if (!data)
+        const res = await this.pg.query("SELECT * FROM cooldown WHERE identifier = $1", [identifier]);
+        const cd = rowToCooldown(res.rows[0]);
+        if (!cd)
             return { left: 0 };
-        const startedAt = Number(data.startedAt);
-        return { ...data, left: Math.max(data.duration - (Date.now() - startedAt), 0) };
+        return { ...cd, left: Math.max(cd.duration - (Date.now() - Number(cd.startedAt)), 0) };
     }
     static async query(query) {
-        return await this.db.query(query);
+        return await this.pg.query(query);
     }
 }
 exports.DataBase = DataBase;

@@ -1,15 +1,18 @@
 {
   "name": "@nationdex/db",
   "version": "1.0.0",
-  "description": "DataBase extension for Project Nationdex 2.0",
+  "description": "DataBase extension for Project Nationdex 2.0, backed by an embedded PGlite (WASM Postgres) instance.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "nationdex",
   "license": "GPL-3.0",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsc && node --test dist/__tests__/db.test.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nationdex/db.git"
@@ -28,9 +31,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@surrealdb/node": "^3.0.3",
-    "surrealdb": "^2.0.8",
-    "tiny-typed-emitter": "^2.1.0",
-    "typeorm": "^0.3.26"
+    "@electric-sql/pglite": "^0.5.8",
+    "tiny-typed-emitter": "^2.1.0"
   }
 }

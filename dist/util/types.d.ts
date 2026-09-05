@@ -1,4 +1,4 @@
-import { IDBEvents } from "../structures";
+import type { IDBEvents } from "../structures";
 export declare enum SortType {
     asc = 0,
     desc = 1
@@ -20,46 +20,13 @@ export declare enum VariableType {
     custom = 5,
     guild = 6
 }
-export type IDataBaseOptions = ({
-    type: "mysql" | "postgres";
-    url?: string;
-    host?: string;
-    port?: number;
-    username?: string;
-    password?: string;
-    database?: string;
+export type IDataBaseOptions = {
+    /** Directory PGlite persists its data to. Ignored when `memory` is true. Defaults to "database". */
     folder?: string;
-} | {
-    type: "surrealdb";
-    folder?: string;
-    engine?: "rocksdb" | "surrealkv" | "mem" | string;
-    url?: string;
-    namespace?: string;
-    database?: string;
-    username?: string;
-    password?: string;
-}) & {
+    /** Run PGlite fully in-memory, with no persistence. */
+    memory?: boolean;
     events?: Array<keyof IDBEvents>;
-    folder?: string;
-    database?: string;
-    engine?: string;
 };
-export declare class MySQLRecord {
-    identifier: string;
-    name: string;
-    id: string;
-    type: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old";
-    value: string;
-    guildId?: string;
-}
-export declare class PostgreSQLRecord {
-    identifier: string;
-    name: string;
-    id: string;
-    type: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old";
-    value: string;
-    guildId?: string;
-}
 export type BaseData = {
     identifier?: string;
     name?: string;
@@ -74,8 +41,15 @@ export type NonGuildData = BaseData & {
     type?: "user" | "message" | "custom" | "guild" | "old";
 };
 export type RecordData = BaseData & (GuildData | NonGuildData);
-export type DBRecord = MySQLRecord;
-export declare class Cooldown {
+export interface DBRecord {
+    identifier: string;
+    name: string;
+    id?: string;
+    type: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old";
+    value: string;
+    guildId?: string;
+}
+export interface CooldownRecord {
     identifier: string;
     name: string;
     id?: string;

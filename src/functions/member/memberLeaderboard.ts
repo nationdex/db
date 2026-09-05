@@ -102,7 +102,7 @@ export default new NativeFunction({
         for (let i = 0, len = rows.length; i < len; i++) {
             const index = pag * limit - limit + i + 1
             const row = rows[i]
-            const username = ctx.client.guilds.cache.get((guildID.value as string) ?? ctx.guild!.id)?.members.cache.get(row.id)?.user.username
+            const username = ctx.client.guilds.cache.get((guildID.value as string) ?? ctx.guild!.id)?.members.cache.get(row.id!)?.user.username
 
             const info = { username, ...row }
             ctx.setEnvironmentKey(positionVariable?.value || "", index)

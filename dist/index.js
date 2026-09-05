@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataBaseManager = exports.DB = void 0;
+exports.DB = void 0;
 const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("./util");
 const structures_1 = require("./structures");
@@ -46,6 +46,4 @@ class DB extends forgescript_1.ForgeExtension {
     }
 }
 exports.DB = DB;
-var util_2 = require("./util");
-Object.defineProperty(exports, "DataBaseManager", { enumerable: true, get: function () { return util_2.DataBaseManager; } });
 //# sourceMappingURL=index.js.map

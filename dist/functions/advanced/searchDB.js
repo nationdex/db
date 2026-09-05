@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const forgescript_1 = require("@tryforge/forgescript");
 const util_1 = require("../../util");
-const typeorm_1 = require("typeorm");
 exports.default = new forgescript_1.NativeFunction({
     name: "$searchDB",
     aliases: ["$searchRecords", "$searchDataBase"],
@@ -52,13 +51,13 @@ exports.default = new forgescript_1.NativeFunction({
     async execute(_ctx, [name, id, type, value, guild]) {
         let search = {};
         if (name)
-            search = { ...search, name: (0, typeorm_1.Like)(name) };
+            search = { ...search, name: (0, util_1.Like)(name) };
         if (id)
             search = { ...search, id };
         if (type)
             search = { ...search, type: util_1.VariableType[type]?.toString() };
         if (value)
-            search = { ...search, value: (0, typeorm_1.Like)(value) };
+            search = { ...search, value: (0, util_1.Like)(value) };
         if (guild)
             search = { ...search, guildId: guild.id };
         return this.successJSON(await util_1.DataBase.find({ ...search }));

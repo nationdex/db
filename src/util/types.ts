@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryColumn, ObjectIdColumn } from "typeorm"
-import { IDBEvents } from "../structures"
+import type { IDBEvents } from "../structures"
 
 export enum SortType {
     asc,
@@ -25,69 +24,12 @@ export enum VariableType {
     guild,
 }
 
-export type IDataBaseOptions = (
-    | {
-          type: "mysql" | "postgres"
-          url?: string
-          host?: string
-          port?: number
-          username?: string
-          password?: string
-          database?: string
-          folder?: string
-      }
-    | {
-          type: "surrealdb"
-          folder?: string
-          engine?: "rocksdb" | "surrealkv" | "mem" | string
-          url?: string
-          namespace?: string
-          database?: string
-          username?: string
-          password?: string
-      }
-) & { events?: Array<keyof IDBEvents>; folder?: string; database?: string; engine?: string }
-
-@Entity("record")
-export class MySQLRecord {
-    @PrimaryColumn()
-    identifier!: string
-
-    @Column()
-    name!: string
-
-    @Column({ nullable: true })
-    id!: string
-
-    @Column()
-    type!: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old"
-
-    @Column("longtext")
-    value!: string
-
-    @Column({ nullable: true })
-    guildId?: string
-}
-
-@Entity("record")
-export class PostgreSQLRecord {
-    @PrimaryColumn()
-    identifier!: string
-
-    @Column()
-    name!: string
-
-    @Column({ nullable: true })
-    id!: string
-
-    @Column()
-    type!: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old"
-
-    @Column("text")
-    value!: string
-
-    @Column({ nullable: true })
-    guildId?: string
+export type IDataBaseOptions = {
+    /** Directory PGlite persists its data to. Ignored when `memory` is true. Defaults to "database". */
+    folder?: string
+    /** Run PGlite fully in-memory, with no persistence. */
+    memory?: boolean
+    events?: Array<keyof IDBEvents>
 }
 
 export type BaseData = {
@@ -102,24 +44,21 @@ export type NonGuildData = BaseData & { type?: "user" | "message" | "custom" | "
 
 export type RecordData = BaseData & (GuildData | NonGuildData)
 
-export type DBRecord = MySQLRecord
-
-@Entity()
-export class Cooldown {
-    @PrimaryColumn()
-    identifier!: string
-
-    @Column()
-    name!: string
-
-    @Column({ nullable: true })
+export interface DBRecord {
+    identifier: string
+    name: string
     id?: string
+    type: "user" | "channel" | "role" | "message" | "member" | "custom" | "guild" | "old"
+    value: string
+    guildId?: string
+}
 
-    @Column()
-    startedAt!: string
-
-    @Column()
-    duration!: number
+export interface CooldownRecord {
+    identifier: string
+    name: string
+    id?: string
+    startedAt: string
+    duration: number
 }
 
 export type CooldownData = {

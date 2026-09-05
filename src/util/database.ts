@@ -1,269 +1,192 @@
-import { Cooldown, DBRecord, GuildData, IDataBaseOptions, MySQLRecord, PostgreSQLRecord, RecordData } from "./types"
-import { DataSource, Timestamp } from "typeorm"
-import { TypedEmitter } from "tiny-typed-emitter"
-import { IDBEvents } from "../structures"
-import { TransformEvents } from ".."
-import "reflect-metadata"
-import { DataBaseManager } from "./databaseManager"
+import { PGlite } from "@electric-sql/pglite"
+import type { TypedEmitter } from "tiny-typed-emitter"
+import type { TransformEvents } from ".."
+import type { IDBEvents } from "../structures"
+import type { CooldownRecord, DBRecord, GuildData, IDataBaseOptions, RecordData } from "./types"
 
 function isGuildData(data: RecordData): data is GuildData {
     return ["member", "channel", "role"].includes(data.type!)
 }
 
-type AnyRecord = typeof MySQLRecord | typeof PostgreSQLRecord
-type AnyCooldown = typeof Cooldown
-export class DataBase extends DataBaseManager {
-    public database = "db"
-    public entityManager = {
-        mysql: [MySQLRecord, Cooldown],
-        postgres: [PostgreSQLRecord, Cooldown],
-    }
-    private static entities: {
-        Record: typeof MySQLRecord | typeof PostgreSQLRecord
-        Cooldown: typeof Cooldown
-    }
+/** Marker produced by `Like()` so `DataBase.find` can build a SQL `LIKE` condition instead of an equality check. */
+export interface LikeCondition {
+    __like: true
+    pattern: string
+}
 
-    private db: Promise<any>
-    private static db: any
+export function Like(pattern: string): LikeCondition {
+    return { __like: true, pattern }
+}
+
+function isLike(value: unknown): value is LikeCondition {
+    return typeof value === "object" && value !== null && (value as LikeCondition).__like === true
+}
+
+const COLUMN_MAP: Record<string, string> = { guildId: "guild_id" }
+const RECORD_COLUMNS = new Set(["identifier", "name", "id", "type", "value", "guild_id"])
+
+function rowToRecord(row: any): DBRecord | null {
+    if (!row) return null
+    return {
+        identifier: row.identifier,
+        name: row.name,
+        id: row.id ?? undefined,
+        type: row.type,
+        value: row.value,
+        guildId: row.guild_id ?? undefined,
+    }
+}
+
+function rowToCooldown(row: any): CooldownRecord | null {
+    if (!row) return null
+    return {
+        identifier: row.identifier,
+        name: row.name,
+        id: row.id ?? undefined,
+        startedAt: row.started_at,
+        duration: Number(row.duration),
+    }
+}
+
+/**
+ * Static facade backed by an embedded PGlite (WASM Postgres) instance.
+ *
+ * All 70+ function files in `src/functions/` call these statics exclusively.
+ */
+export class DataBase {
+    private static pg: PGlite
     private static emitter: TypedEmitter<TransformEvents<IDBEvents>>
 
     constructor(
         private emitter: TypedEmitter<TransformEvents<IDBEvents>>,
-        options?: IDataBaseOptions
-    ) {
-        super(options ?? {type: "surrealdb"})
-        this.type = options?.type || "surrealdb"
-        this.db = this.getDB()
-        const entityKey = (this.type === "mysql" || this.type === "postgres") ? this.type : "mysql"
-        DataBase.entities = {
-            Record: this.entityManager[entityKey][0] as AnyRecord,
-            Cooldown: this.entityManager[entityKey][1] as AnyCooldown,
-        }
-    }
+        private options?: IDataBaseOptions
+    ) {}
 
     public async init() {
         DataBase.emitter = this.emitter
-        DataBase.db = await this.db
+        DataBase.pg = new PGlite(this.options?.memory ? undefined : (this.options?.folder ?? "database"))
+        await DataBase.pg.waitReady
+
+        await DataBase.pg.exec(`
+            CREATE TABLE IF NOT EXISTS record (
+                identifier TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                id TEXT,
+                type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                guild_id TEXT
+            );
+            CREATE TABLE IF NOT EXISTS cooldown (
+                identifier TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                id TEXT,
+                started_at TEXT NOT NULL,
+                duration BIGINT NOT NULL
+            );
+        `)
+
         DataBase.emitter.emit("connect")
     }
 
     public static make_intetifier(data: RecordData) {
-        return `${data.type}_${data.name}_${isGuildData(data) ? data.guildId + "_" : ""}${data.id}`
+        return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`
+    }
+
+    public static make_cdIdentifier(data: { name?: string; id?: string }) {
+        return `${data.name}${data.id ? `_${data.id}` : ""}`
     }
 
     public static async set(data: RecordData) {
-        if (this.type === "surrealdb") {
-            const identifier = this.make_intetifier(data)
-            const newData: any = {
-                identifier,
-                name: data.name!,
-                targetId: data.id,
-                type: data.type!,
-                value: data.value!,
-            }
-            if (isGuildData(data)) newData.guildId = data.guildId
-            const oldData = await this.get(data)
-            const eventData = { ...newData, id: data.id }
-            if (oldData) {
-                this.emitter.emit("variableUpdate", { newData: eventData, oldData })
-            } else {
-                this.emitter.emit("variableCreate", { data: eventData })
-            }
-            await this.db.query("UPSERT type::thing('record', $id) MERGE $data;", {
-                id: identifier,
-                data: newData,
-            })
-            return
-        }
+        const identifier = data.identifier ?? this.make_intetifier(data)
+        const guildId = isGuildData(data) ? (data.guildId ?? null) : null
 
-        const newData = new this.entities.Record()
-        newData.identifier = this.make_intetifier(data)
-        newData.name = data.name!
-        newData.id = data.id!
-        newData.type = data.type!
-        newData.value = data.value!
-        if (isGuildData(data)) newData.guildId = data.guildId
-        const oldData = (await this.db.getRepository(this.entities.Record).findOneBy({ identifier: this.make_intetifier(data) })) as DBRecord
-        oldData ? this.emitter.emit("variableUpdate", { newData, oldData }) : this.emitter.emit("variableCreate", { data: newData })
-        await this.db.getRepository(this.entities.Record).save(newData)
-    }
+        const oldData = await this.get(data)
+        await this.pg.query(
+            `INSERT INTO record (identifier, name, id, type, value, guild_id)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (identifier) DO UPDATE SET name = $2, id = $3, type = $4, value = $5, guild_id = $6`,
+            [identifier, data.name, data.id ?? null, data.type, data.value, guildId]
+        )
 
-    private static formatSurrealRecord(rec: any): DBRecord {
-        if (!rec) return rec
-        return {
-            ...rec,
-            id: rec.targetId !== undefined ? rec.targetId : (rec.id && typeof rec.id === "object" ? rec.id.id : rec.id)
-        }
+        const newData = rowToRecord({ identifier, name: data.name, id: data.id, type: data.type, value: data.value, guild_id: guildId })
+        if (oldData) this.emitter.emit("variableUpdate", { newData, oldData })
+        else this.emitter.emit("variableCreate", { data: newData })
     }
 
     public static async get(data: RecordData): Promise<DBRecord | null> {
         const identifier = data.identifier ?? this.make_intetifier(data)
-        if (this.type === "surrealdb") {
-            const { RecordId } = require("surrealdb")
-            try {
-                const res = await this.db.select(new RecordId("record", identifier))
-                return res ? this.formatSurrealRecord(res) : null
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return null
-                throw err
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).findOneBy({ identifier })
+        const res = await this.pg.query<any>("SELECT * FROM record WHERE identifier = $1", [identifier])
+        return rowToRecord(res.rows[0])
     }
 
     public static async getAll(): Promise<DBRecord[]> {
-        if (this.type === "surrealdb") {
-            try {
-                const [records] = (await this.db.query("SELECT * FROM record;")) as [any[]]
-                return (records ?? []).map((r) => this.formatSurrealRecord(r))
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return []
-                throw err
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).find()
+        const res = await this.pg.query<any>("SELECT * FROM record")
+        return res.rows.map(rowToRecord) as DBRecord[]
     }
 
-    public static async find(data?: RecordData | any): Promise<DBRecord[]> {
-        if (this.type === "surrealdb") {
-            let records: any[] = []
-            try {
-                const [res] = (await this.db.query("SELECT * FROM record;")) as [any[]]
-                records = res ?? []
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return []
-                throw err
+    public static async find(data?: Record<string, unknown>): Promise<DBRecord[]> {
+        if (!data || Object.keys(data).length === 0) return this.getAll()
+
+        const conditions: string[] = []
+        const params: unknown[] = []
+        for (const [key, value] of Object.entries(data)) {
+            if (value === undefined) continue
+            const column = COLUMN_MAP[key] ?? key
+            if (!RECORD_COLUMNS.has(column)) continue
+            if (value === null) {
+                conditions.push(`${column} IS NULL`)
+            } else if (isLike(value)) {
+                params.push(value.pattern)
+                conditions.push(`${column} LIKE $${params.length}`)
+            } else {
+                params.push(value)
+                conditions.push(`${column} = $${params.length}`)
             }
-            const formatted = records.map((r) => this.formatSurrealRecord(r))
-            if (!data || Object.keys(data).length === 0) return formatted
-            return formatted.filter((rec) => {
-                for (const [key, val] of Object.entries(data)) {
-                    if (val === undefined) continue
-                    if (val && typeof val === "object" && ("_type" in (val as any) || "value" in (val as any))) {
-                        const pattern = (val as any)._value ?? (val as any).value
-                        if (typeof pattern === "string") {
-                            const target = String(rec[key as keyof DBRecord] ?? "")
-                            const regexStr = "^" + pattern.replace(/[%_]/g, (m) => (m === "%" ? ".*" : ".")) + "$"
-                            if (!new RegExp(regexStr, "i").test(target)) return false
-                        }
-                    } else if (rec[key as keyof DBRecord] !== val) {
-                        return false
-                    }
-                }
-                return true
-            })
         }
-        return await this.db.getRepository(this.entities.Record).find({
-            where: { ...data },
-        })
+        if (conditions.length === 0) return this.getAll()
+
+        const res = await this.pg.query<any>(`SELECT * FROM record WHERE ${conditions.join(" AND ")}`, params)
+        return res.rows.map(rowToRecord) as DBRecord[]
     }
 
     public static async delete(data: RecordData) {
         const identifier = data.identifier ?? this.make_intetifier(data)
-        if (this.type === "surrealdb") {
-            const oldData = await this.get(data)
-            this.emitter.emit("variableDelete", { data: oldData })
-            try {
-                return await this.db.query("DELETE FROM record WHERE identifier = $id;", { id: identifier })
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return null
-                throw err
-            }
-        }
-        this.emitter.emit("variableDelete", { data: (await this.db.getRepository(this.entities.Record).findOneBy({ identifier })) as DBRecord })
-        return await this.db.getRepository(this.entities.Record).delete({ identifier })
+        const oldData = await this.get(data)
+        await this.pg.query("DELETE FROM record WHERE identifier = $1", [identifier])
+        this.emitter.emit("variableDelete", { data: oldData })
     }
 
     public static async wipe() {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM record;")
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return null
-                throw err
-            }
-        }
-        return await this.db.getRepository(this.entities.Record).clear()
+        await this.pg.exec("DELETE FROM record")
     }
 
     public static async cdWipe() {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM cooldown;")
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return null
-                throw err
-            }
-        }
-        return await this.db.getRepository(this.entities.Cooldown).clear()
-    }
-
-    public static make_cdIdentifier(data: { name?: string; id?: string }) {
-        return `${data.name}${data.id ? "_" + data.id : ""}`
+        await this.pg.exec("DELETE FROM cooldown")
     }
 
     public static async cdAdd(data: { name: string; id?: string; duration: number }) {
-        if (this.type === "surrealdb") {
-            const identifier = this.make_cdIdentifier(data)
-            const cd = {
-                identifier,
-                name: data.name,
-                targetId: data.id,
-                startedAt: Date.now().toString(),
-                duration: data.duration,
-            }
-            return await this.db.query("UPSERT type::thing('cooldown', $id) MERGE $data;", {
-                id: identifier,
-                data: cd,
-            })
-        }
-
-        const cd = new this.entities.Cooldown()
-        cd.identifier = this.make_cdIdentifier(data)
-        cd.name = data.name
-        cd.id = data.id
-        cd.startedAt = Date.now().toString()
-        cd.duration = data.duration
-
-        return await this.db.getRepository(this.entities.Cooldown).save(cd)
+        const identifier = this.make_cdIdentifier(data)
+        const startedAt = Date.now().toString()
+        await this.pg.query(
+            `INSERT INTO cooldown (identifier, name, id, started_at, duration)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (identifier) DO UPDATE SET name = $2, id = $3, started_at = $4, duration = $5`,
+            [identifier, data.name, data.id ?? null, startedAt, data.duration]
+        )
     }
 
     public static async cdDelete(identifier: string) {
-        if (this.type === "surrealdb") {
-            try {
-                return await this.db.query("DELETE FROM cooldown WHERE identifier = $id;", { id: identifier })
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return null
-                throw err
-            }
-        }
-        await this.db.getRepository(this.entities.Cooldown).delete({ identifier })
+        await this.pg.query("DELETE FROM cooldown WHERE identifier = $1", [identifier])
     }
 
     public static async cdTimeLeft(identifier: string) {
-        if (this.type === "surrealdb") {
-            try {
-                const [res] = (await this.db.query("SELECT * FROM cooldown WHERE identifier = $id LIMIT 1;", { id: identifier })) as [any[]]
-                const data = res && res.length ? res[0] : null
-                if (!data) return { left: 0 }
-                const startedAt = Number(data.startedAt)
-                return {
-                    ...data,
-                    id: data.targetId !== undefined ? data.targetId : (data.id && typeof data.id === "object" ? data.id.id : data.id),
-                    left: Math.max(data.duration - (Date.now() - startedAt), 0)
-                }
-            } catch (err: any) {
-                if (err?.kind === "NotFound" || err?.message?.includes("does not exist")) return { left: 0 }
-                throw err
-            }
-        }
-        const data = await this.db.getRepository(this.entities.Cooldown).findOneBy({ identifier })
-        if (!data) return { left: 0 }
-        const startedAt = Number(data.startedAt)
-        return { ...data, left: Math.max(data.duration - (Date.now() - startedAt), 0) }
+        const res = await this.pg.query<any>("SELECT * FROM cooldown WHERE identifier = $1", [identifier])
+        const cd = rowToCooldown(res.rows[0])
+        if (!cd) return { left: 0 }
+        return { ...cd, left: Math.max(cd.duration - (Date.now() - Number(cd.startedAt)), 0) }
     }
 
     public static async query(query: string) {
-        return await this.db.query(query)
+        return await this.pg.query(query)
     }
 }
