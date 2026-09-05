@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataBase = exports.Like = void 0;
+exports.DataBase = void 0;
+exports.Like = Like;
 const pglite_1 = require("@electric-sql/pglite");
 function isGuildData(data) {
     return ["member", "channel", "role"].includes(data.type);
@@ -8,7 +9,6 @@ function isGuildData(data) {
 function Like(pattern) {
     return { __like: true, pattern };
 }
-exports.Like = Like;
 function isLike(value) {
     return typeof value === "object" && value !== null && value.__like === true;
 }

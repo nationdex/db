@@ -22,13 +22,13 @@
   },
   "homepage": "https://github.com/nationdex/db#readme",
   "engines": {
-    "node": ">=16.11.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@tryforge/forgescript": "^2.5.0",
-    "@types/node": "^20.5.7",
-    "discord.js": "^14.23.2",
-    "typescript": "^5.2.2"
+    "@tryforge/forgescript": "^2.7.0",
+    "@types/node": "^20.19.43",
+    "discord.js": "^14.27.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

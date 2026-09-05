@@ -44,7 +44,7 @@ export declare class DataBase {
         left: number;
         identifier: string;
         name: string;
-        id?: string | undefined;
+        id?: string;
         startedAt: string;
         duration: number;
     }>;
