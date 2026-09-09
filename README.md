@@ -12,6 +12,7 @@ Database extension for ForgeScript apps and bots. It stores persistent data (var
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Options](#options)
+- [Shutdown](#shutdown)
 - [How It Works](#how-it-works)
 - [License](#license)
 
@@ -61,6 +62,23 @@ new DB({
 ```
 
 There is no `type` option anymore — PGlite is the only backend.
+
+---
+
+## Shutdown
+
+PGlite persists to disk, so an ungraceful exit can lose whatever hasn't been flushed yet. If your process handles its own shutdown (SIGINT/SIGTERM, a PM2/systemd stop, etc.), call `DataBase.close()` from it before exiting:
+
+```ts
+import { DataBase } from "@nationdex/db";
+
+process.on("SIGINT", async () => {
+    await DataBase.close();
+    process.exit(0);
+});
+```
+
+This isn't wired up automatically — installing process-wide signal handlers is the host application's call, not something this extension should do on your behalf.
 
 ---
 

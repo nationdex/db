@@ -104,4 +104,39 @@ describe("ForgeDB (PGlite) CRUD Suite", () => {
         const res = await DataBase.query("SELECT 1 AS one")
         assert(res !== undefined)
     })
+
+    it("rejects writes missing required fields instead of hitting a NOT NULL constraint", async () => {
+        await assert.rejects(() => DataBase.set({ type: "user", id: "u1" } as any), /`name` is required/)
+        await assert.rejects(() => DataBase.set({ name: "x", id: "u1" } as any), /`type` is required/)
+        await assert.rejects(() => DataBase.set({ name: "x", type: "user", id: "u1" } as any), /`value` is required/)
+    })
+})
+
+describe("ForgeDB (PGlite) initialization & lifecycle", () => {
+    it("queues calls made before init() resolves instead of throwing", async () => {
+        const folder = path.resolve(process.cwd(), "test-database-race")
+        const emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+        const db = new DataBase(emitter, { folder })
+
+        const initPromise = db.init()
+        // Fired before init() has resolved — must wait on the same readiness gate, not throw.
+        const racedSet = DataBase.set({ type: "user", name: "race", id: "u1", value: "1" })
+
+        await Promise.all([initPromise, racedSet])
+        const fetched = await DataBase.get({ type: "user", name: "race", id: "u1" })
+        assert.strictEqual(fetched?.value, "1")
+
+        await DataBase.close()
+        try {
+            if (fs.existsSync(folder)) fs.rmSync(folder, { recursive: true, force: true })
+        } catch {}
+    })
+
+    it("close() flushes and shuts down cleanly", async () => {
+        const emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+        const db = new DataBase(emitter, { memory: true })
+        await db.init()
+        await DataBase.set({ type: "user", name: "tmp", id: "u1", value: "1" })
+        await DataBase.close()
+    })
 })

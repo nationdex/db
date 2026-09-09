@@ -57,6 +57,14 @@ export class DataBase {
     private static pg: PGlite
     private static emitter: TypedEmitter<TransformEvents<IDBEvents>>
 
+    /**
+     * Resolves once PGlite has booted and the schema exists. Every other static
+     * method awaits this first, so callers can never observe `pg` before it's set —
+     * closing the race between `ForgeExtension.init()` (synchronous, framework-invoked,
+     * can't be awaited) and the first ForgeScript function that touches the database.
+     */
+    private static ready: Promise<void> = Promise.resolve()
+
     constructor(
         private emitter: TypedEmitter<TransformEvents<IDBEvents>>,
         private options?: IDataBaseOptions
@@ -64,6 +72,11 @@ export class DataBase {
 
     public async init() {
         DataBase.emitter = this.emitter
+        DataBase.ready = this.connect()
+        await DataBase.ready
+    }
+
+    private async connect() {
         DataBase.pg = new PGlite(this.options?.memory ? undefined : (this.options?.folder ?? "database"))
         await DataBase.pg.waitReady
 
@@ -88,6 +101,12 @@ export class DataBase {
         DataBase.emitter.emit("connect")
     }
 
+    /** Flushes and closes the underlying PGlite instance. Call this from your own shutdown path. */
+    public static async close() {
+        await this.ready
+        await this.pg.close()
+    }
+
     public static make_intetifier(data: RecordData) {
         return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`
     }
@@ -97,6 +116,11 @@ export class DataBase {
     }
 
     public static async set(data: RecordData) {
+        if (!data.name) throw new Error("DataBase.set: `name` is required")
+        if (!data.type) throw new Error("DataBase.set: `type` is required")
+        if (data.value === undefined) throw new Error("DataBase.set: `value` is required")
+
+        await this.ready
         const identifier = data.identifier ?? this.make_intetifier(data)
         const guildId = isGuildData(data) ? (data.guildId ?? null) : null
 
@@ -114,17 +138,20 @@ export class DataBase {
     }
 
     public static async get(data: RecordData): Promise<DBRecord | null> {
+        await this.ready
         const identifier = data.identifier ?? this.make_intetifier(data)
         const res = await this.pg.query<any>("SELECT * FROM record WHERE identifier = $1", [identifier])
         return rowToRecord(res.rows[0])
     }
 
     public static async getAll(): Promise<DBRecord[]> {
+        await this.ready
         const res = await this.pg.query<any>("SELECT * FROM record")
         return res.rows.map(rowToRecord) as DBRecord[]
     }
 
     public static async find(data?: Record<string, unknown>): Promise<DBRecord[]> {
+        await this.ready
         if (!data || Object.keys(data).length === 0) return this.getAll()
 
         const conditions: string[] = []
@@ -150,6 +177,7 @@ export class DataBase {
     }
 
     public static async delete(data: RecordData) {
+        await this.ready
         const identifier = data.identifier ?? this.make_intetifier(data)
         const oldData = await this.get(data)
         await this.pg.query("DELETE FROM record WHERE identifier = $1", [identifier])
@@ -157,14 +185,17 @@ export class DataBase {
     }
 
     public static async wipe() {
+        await this.ready
         await this.pg.exec("DELETE FROM record")
     }
 
     public static async cdWipe() {
+        await this.ready
         await this.pg.exec("DELETE FROM cooldown")
     }
 
     public static async cdAdd(data: { name: string; id?: string; duration: number }) {
+        await this.ready
         const identifier = this.make_cdIdentifier(data)
         const startedAt = Date.now().toString()
         await this.pg.query(
@@ -176,10 +207,12 @@ export class DataBase {
     }
 
     public static async cdDelete(identifier: string) {
+        await this.ready
         await this.pg.query("DELETE FROM cooldown WHERE identifier = $1", [identifier])
     }
 
     public static async cdTimeLeft(identifier: string) {
+        await this.ready
         const res = await this.pg.query<any>("SELECT * FROM cooldown WHERE identifier = $1", [identifier])
         const cd = rowToCooldown(res.rows[0])
         if (!cd) return { left: 0 }
@@ -187,6 +220,7 @@ export class DataBase {
     }
 
     public static async query(query: string) {
+        await this.ready
         return await this.pg.query(query)
     }
 }

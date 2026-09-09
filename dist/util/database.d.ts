@@ -18,8 +18,18 @@ export declare class DataBase {
     private options?;
     private static pg;
     private static emitter;
+    /**
+     * Resolves once PGlite has booted and the schema exists. Every other static
+     * method awaits this first, so callers can never observe `pg` before it's set —
+     * closing the race between `ForgeExtension.init()` (synchronous, framework-invoked,
+     * can't be awaited) and the first ForgeScript function that touches the database.
+     */
+    private static ready;
     constructor(emitter: TypedEmitter<TransformEvents<IDBEvents>>, options?: IDataBaseOptions | undefined);
     init(): Promise<void>;
+    private connect;
+    /** Flushes and closes the underlying PGlite instance. Call this from your own shutdown path. */
+    static close(): Promise<void>;
     static make_intetifier(data: RecordData): string;
     static make_cdIdentifier(data: {
         name?: string;

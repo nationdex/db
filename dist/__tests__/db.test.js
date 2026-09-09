@@ -93,5 +93,36 @@ const database_1 = require("../util/database");
         const res = await database_1.DataBase.query("SELECT 1 AS one");
         (0, node_assert_1.default)(res !== undefined);
     });
+    (0, node_test_1.it)("rejects writes missing required fields instead of hitting a NOT NULL constraint", async () => {
+        await node_assert_1.default.rejects(() => database_1.DataBase.set({ type: "user", id: "u1" }), /`name` is required/);
+        await node_assert_1.default.rejects(() => database_1.DataBase.set({ name: "x", id: "u1" }), /`type` is required/);
+        await node_assert_1.default.rejects(() => database_1.DataBase.set({ name: "x", type: "user", id: "u1" }), /`value` is required/);
+    });
+});
+(0, node_test_1.describe)("ForgeDB (PGlite) initialization & lifecycle", () => {
+    (0, node_test_1.it)("queues calls made before init() resolves instead of throwing", async () => {
+        const folder = node_path_1.default.resolve(process.cwd(), "test-database-race");
+        const emitter = new tiny_typed_emitter_1.TypedEmitter();
+        const db = new database_1.DataBase(emitter, { folder });
+        const initPromise = db.init();
+        // Fired before init() has resolved — must wait on the same readiness gate, not throw.
+        const racedSet = database_1.DataBase.set({ type: "user", name: "race", id: "u1", value: "1" });
+        await Promise.all([initPromise, racedSet]);
+        const fetched = await database_1.DataBase.get({ type: "user", name: "race", id: "u1" });
+        node_assert_1.default.strictEqual(fetched?.value, "1");
+        await database_1.DataBase.close();
+        try {
+            if (node_fs_1.default.existsSync(folder))
+                node_fs_1.default.rmSync(folder, { recursive: true, force: true });
+        }
+        catch { }
+    });
+    (0, node_test_1.it)("close() flushes and shuts down cleanly", async () => {
+        const emitter = new tiny_typed_emitter_1.TypedEmitter();
+        const db = new database_1.DataBase(emitter, { memory: true });
+        await db.init();
+        await database_1.DataBase.set({ type: "user", name: "tmp", id: "u1", value: "1" });
+        await database_1.DataBase.close();
+    });
 });
 //# sourceMappingURL=db.test.js.map

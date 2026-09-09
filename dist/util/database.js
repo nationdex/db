@@ -47,12 +47,23 @@ class DataBase {
     options;
     static pg;
     static emitter;
+    /**
+     * Resolves once PGlite has booted and the schema exists. Every other static
+     * method awaits this first, so callers can never observe `pg` before it's set —
+     * closing the race between `ForgeExtension.init()` (synchronous, framework-invoked,
+     * can't be awaited) and the first ForgeScript function that touches the database.
+     */
+    static ready = Promise.resolve();
     constructor(emitter, options) {
         this.emitter = emitter;
         this.options = options;
     }
     async init() {
         DataBase.emitter = this.emitter;
+        DataBase.ready = this.connect();
+        await DataBase.ready;
+    }
+    async connect() {
         DataBase.pg = new pglite_1.PGlite(this.options?.memory ? undefined : (this.options?.folder ?? "database"));
         await DataBase.pg.waitReady;
         await DataBase.pg.exec(`
@@ -74,6 +85,11 @@ class DataBase {
         `);
         DataBase.emitter.emit("connect");
     }
+    /** Flushes and closes the underlying PGlite instance. Call this from your own shutdown path. */
+    static async close() {
+        await this.ready;
+        await this.pg.close();
+    }
     static make_intetifier(data) {
         return `${data.type}_${data.name}_${isGuildData(data) ? `${data.guildId}_` : ""}${data.id}`;
     }
@@ -81,6 +97,13 @@ class DataBase {
         return `${data.name}${data.id ? `_${data.id}` : ""}`;
     }
     static async set(data) {
+        if (!data.name)
+            throw new Error("DataBase.set: `name` is required");
+        if (!data.type)
+            throw new Error("DataBase.set: `type` is required");
+        if (data.value === undefined)
+            throw new Error("DataBase.set: `value` is required");
+        await this.ready;
         const identifier = data.identifier ?? this.make_intetifier(data);
         const guildId = isGuildData(data) ? (data.guildId ?? null) : null;
         const oldData = await this.get(data);
@@ -94,15 +117,18 @@ class DataBase {
             this.emitter.emit("variableCreate", { data: newData });
     }
     static async get(data) {
+        await this.ready;
         const identifier = data.identifier ?? this.make_intetifier(data);
         const res = await this.pg.query("SELECT * FROM record WHERE identifier = $1", [identifier]);
         return rowToRecord(res.rows[0]);
     }
     static async getAll() {
+        await this.ready;
         const res = await this.pg.query("SELECT * FROM record");
         return res.rows.map(rowToRecord);
     }
     static async find(data) {
+        await this.ready;
         if (!data || Object.keys(data).length === 0)
             return this.getAll();
         const conditions = [];
@@ -131,18 +157,22 @@ class DataBase {
         return res.rows.map(rowToRecord);
     }
     static async delete(data) {
+        await this.ready;
         const identifier = data.identifier ?? this.make_intetifier(data);
         const oldData = await this.get(data);
         await this.pg.query("DELETE FROM record WHERE identifier = $1", [identifier]);
         this.emitter.emit("variableDelete", { data: oldData });
     }
     static async wipe() {
+        await this.ready;
         await this.pg.exec("DELETE FROM record");
     }
     static async cdWipe() {
+        await this.ready;
         await this.pg.exec("DELETE FROM cooldown");
     }
     static async cdAdd(data) {
+        await this.ready;
         const identifier = this.make_cdIdentifier(data);
         const startedAt = Date.now().toString();
         await this.pg.query(`INSERT INTO cooldown (identifier, name, id, started_at, duration)
@@ -150,9 +180,11 @@ class DataBase {
              ON CONFLICT (identifier) DO UPDATE SET name = $2, id = $3, started_at = $4, duration = $5`, [identifier, data.name, data.id ?? null, startedAt, data.duration]);
     }
     static async cdDelete(identifier) {
+        await this.ready;
         await this.pg.query("DELETE FROM cooldown WHERE identifier = $1", [identifier]);
     }
     static async cdTimeLeft(identifier) {
+        await this.ready;
         const res = await this.pg.query("SELECT * FROM cooldown WHERE identifier = $1", [identifier]);
         const cd = rowToCooldown(res.rows[0]);
         if (!cd)
@@ -160,6 +192,7 @@ class DataBase {
         return { ...cd, left: Math.max(cd.duration - (Date.now() - Number(cd.startedAt)), 0) };
     }
     static async query(query) {
+        await this.ready;
         return await this.pg.query(query);
     }
 }

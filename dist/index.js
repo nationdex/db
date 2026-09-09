@@ -21,7 +21,7 @@ class DB extends forgescript_1.ForgeExtension {
         this.commands = new structures_1.DBCommandManager(client);
         forgescript_1.EventManager.load('DBEvents', __dirname + '/events');
         this.load(__dirname + "/functions");
-        new util_1.DataBase(this.emitter, this.options).init();
+        new util_1.DataBase(this.emitter, this.options).init().catch((err) => console.error("[db] Failed to initialize database:", err));
         client.db = util_1.DataBase;
         if (this.options?.events?.length)
             client.events.load("DBEvents", this.options.events);

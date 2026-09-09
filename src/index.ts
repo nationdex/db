@@ -27,7 +27,7 @@ export class DB extends ForgeExtension {
         EventManager.load('DBEvents', __dirname + '/events')
         this.load(__dirname + "/functions")
 
-        new DataBase(this.emitter, this.options).init()
+        new DataBase(this.emitter, this.options).init().catch((err) => console.error("[db] Failed to initialize database:", err))
         client.db = DataBase
 
         if (this.options?.events?.length)
