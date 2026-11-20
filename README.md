@@ -90,3 +90,14 @@ This isn't wired up automatically — installing process-wide signal handlers is
 ## License
 
 This project is licensed under the [GPL-3.0 License](LICENSE).
+
+## Editor metadata
+
+Run `bun run metadata` after changing ForgeScript functions or events. The generator reads the current extension definitions and writes the JSON served from this repository.
+
+- In TryForge ForgeVSC, add `github:nationdex/db#main` to `forgevsc.workspace.additionalPackages`.
+- In EdexLabs ForgeVSC, add `github:nationdex/db#main` to `extensions` in `forgeconfig.json`.
+
+## PND26 database helpers
+
+Use `$getGlobalVar[config;;prefix]` for a nested configuration value and `$getSuggestionStats[userId]` for a submitter's open count and latest submission timestamp. The timestamp is in milliseconds and is `null` if the submitter has no suggestions.

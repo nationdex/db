@@ -9,11 +9,13 @@
   "scripts": {
     "build": "bun build --target=bun --no-bundle --root=src --outdir=dist src/index.ts src/events/*.ts src/functions/*/*.ts src/structures/*.ts src/util/*.ts",
     "test": "bun test src",
-    "typecheck": "bun check"
+    "typecheck": "bun check",
+    "metadata": "bun run build && bun scripts/generate-metadata.ts"
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "metadata"
   ],
   "repository": {
     "type": "git",

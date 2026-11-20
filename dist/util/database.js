@@ -247,6 +247,14 @@ export class DataBase {
     const res = await this.pg.query(`${this.SUGGESTION_SELECT} ${where} GROUP BY s.id ORDER BY vote_count DESC, s.created_at ASC`, params);
     return res.rows.map(rowToSuggestion);
   }
+  static async getSuggestionStats(submitterId) {
+    await this.ready;
+    const result = await this.pg.query(`SELECT count(*) FILTER (WHERE status IN ('pending', 'changes_requested'))::int AS open_count,
+                    floor(extract(epoch FROM max(created_at)) * 1000)::double precision AS latest_submission_at
+             FROM suggestion WHERE submitter_id = $1`, [submitterId]);
+    const row = result.rows[0];
+    return { openCount: row.open_count, latestSubmissionAt: row.latest_submission_at };
+  }
   static async updateSuggestion(id, data) {
     await this.ready;
     const sets = ["updated_at = now()"];

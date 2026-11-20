@@ -4,7 +4,7 @@ import { DB } from "../..";
 export default new NativeFunction({
   name: "$getGlobalVar",
   version: "2.0.0",
-  description: "Retrieves the value of a variable associated with a global",
+  description: "Retrieves a global variable or a value at a dotted JSON path.",
   output: ArgType.Unknown,
   unwrap: true,
   args: [
@@ -17,33 +17,54 @@ export default new NativeFunction({
     },
     {
       name: "default",
-      description: "The default value to return if the identifier doesn't exist in the variable",
+      description: "Fallback when the variable or JSON path is missing",
       rest: false,
       required: false,
       type: ArgType.String
+    },
+    {
+      name: "path",
+      description: "Optional dotted JSON path, such as author.name or items.0",
+      rest: false,
+      type: ArgType.String,
+      required: false
     }
   ],
   brackets: true,
-  async execute(ctx, [name, def]) {
-    const data = await DataBase.get({ name, type: "custom" }).then((x) => x?.value);
-    if (data === null || data === undefined) {
-      if (def)
+  async execute(ctx, [name, def, path]) {
+    let value = (await DataBase.get({ name, type: "custom" }))?.value;
+    if (value === undefined) {
+      if (def && !path?.trim())
         return this.successJSON(def);
-      else if (DB.defaults && name in DB.defaults) {
-        const defData = DB.defaults[name];
-        if (typeof defData === "object" && defData !== null && "functions" in defData) {
-          const d = defData;
-          const result = await Interpreter.run(ctx.clone({
-            data: d,
+      if (DB.defaults && Object.hasOwn(DB.defaults, name)) {
+        value = DB.defaults[name];
+        if (typeof value === "object" && value !== null && "functions" in value) {
+          value = await Interpreter.run(ctx.clone({
+            data: value,
             allowTopLevelReturn: true,
             doNotSend: true,
             redirectErrorsToConsole: true
           }));
-          return result === null ? this.stop() : this.successJSON(result);
-        } else
-          return this.successJSON(defData);
+          if (value === null && !path?.trim())
+            return this.stop();
+        }
       }
     }
-    return this.successJSON(data);
+    if (!path?.trim())
+      return this.successJSON(value);
+    if (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        return this.successJSON(def ?? "");
+      }
+    }
+    for (const key of path.trim().split(".")) {
+      if (typeof value !== "object" || value === null || !Object.hasOwn(value, key)) {
+        return this.successJSON(def ?? "");
+      }
+      value = Reflect.get(value, key);
+    }
+    return this.successJSON(value ?? def ?? "");
   }
 });

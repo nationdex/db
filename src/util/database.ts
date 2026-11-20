@@ -311,6 +311,18 @@ export class DataBase {
         return res.rows.map(rowToSuggestion) as SuggestionRecord[]
     }
 
+    public static async getSuggestionStats(submitterId: string) {
+        await this.ready
+        const result = await this.pg.query<{ open_count: number; latest_submission_at: number | null }>(
+            `SELECT count(*) FILTER (WHERE status IN ('pending', 'changes_requested'))::int AS open_count,
+                    floor(extract(epoch FROM max(created_at)) * 1000)::double precision AS latest_submission_at
+             FROM suggestion WHERE submitter_id = $1`,
+            [submitterId]
+        )
+        const row = result.rows[0]
+        return { openCount: row.open_count, latestSubmissionAt: row.latest_submission_at }
+    }
+
     public static async updateSuggestion(id: number, data: SuggestionUpdateData): Promise<SuggestionRecord | null> {
         await this.ready
         const sets: string[] = ["updated_at = now()"]
