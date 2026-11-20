@@ -24,7 +24,7 @@ Bun database extension for Project Nationdex 2026. It stores persistent data (va
 bun add github:nationdex/db#main
 ```
 
-Use Bun 1.4.5 or newer with the ForgeScript version supplied by Project Nationdex 2026.
+Use Bun 1.4.3 or newer with the ForgeScript version supplied by Project Nationdex 2026.
 
 ---
 
