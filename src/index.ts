@@ -1,7 +1,8 @@
 import { Compiler, EventManager, ForgeClient, ForgeExtension, IExtendedCompilationResult } from "@tryforge/forgescript"
 import { DataBase, IDataBaseOptions } from "./util"
 import { DBCommandManager, IDBEvents } from "./structures"
-import { TypedEmitter } from "tiny-typed-emitter"
+import { EventEmitter } from "node:events"
+import { version } from "../package.json"
 
 export type TransformEvents<T> = {
     [P in keyof T]: T[P] extends any[] ? (...args: T[P]) => any : never
@@ -12,10 +13,10 @@ export class DB extends ForgeExtension {
 
     name: string = "db"
     description: string = "A fast and reliable database extension for ForgeScript."
-    version: string = require("../package.json").version
+    version: string = version
 
     public commands!: any
-    public emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+    public emitter = new EventEmitter<IDBEvents>()
 
     public constructor(public readonly options?: IDataBaseOptions) {
         super()
@@ -24,8 +25,8 @@ export class DB extends ForgeExtension {
     init(client: ForgeClient): void {
         this.commands = new DBCommandManager(client)
 
-        EventManager.load('DBEvents', __dirname + '/events')
-        this.load(__dirname + "/functions")
+        EventManager.load('DBEvents', import.meta.dir + '/events')
+        this.load(import.meta.dir + "/functions")
 
         new DataBase(this.emitter, this.options).init().catch((err) => console.error("[db] Failed to initialize database:", err))
         client.db = DataBase

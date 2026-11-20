@@ -1,6 +1,6 @@
 # @nationdex/db
 
-Database extension for ForgeScript apps and bots. It stores persistent data (variables, leaderboards, cooldowns) in an embedded [PGlite](https://pglite.dev) instance — full Postgres compiled to WASM, running in-process. No database server, no native driver package, no extra install step.
+Bun database extension for Project Nationdex 2026. It stores persistent data (variables, leaderboards, cooldowns, and suggestions) in an embedded [PGlite](https://pglite.dev) instance — full Postgres compiled to WASM, running in-process. No database server, no native driver package, no extra install step.
 
 [![discord](https://img.shields.io/discord/1321001945738971167?color=5865F2&label=Discord&logo=discord)](https://discord.com/invite/WCdk6CSKKz)
 [![License](https://img.shields.io/github/license/nationdex/db)](https://github.com/nationdex/db/blob/main/LICENSE)
@@ -21,10 +21,10 @@ Database extension for ForgeScript apps and bots. It stores persistent data (var
 ## Installation
 
 ```bash
-npm install github:nationdex/db
+bun add github:nationdex/db#main
 ```
 
-That's it — `@electric-sql/pglite` ships the Postgres engine itself, so there is no separate database driver to install or server to run.
+Use Bun 1.4.5 or newer with the ForgeScript version supplied by Project Nationdex 2026.
 
 ---
 
@@ -70,10 +70,9 @@ There is no `type` option anymore — PGlite is the only backend.
 PGlite persists to disk, so an ungraceful exit can lose whatever hasn't been flushed yet. If your process handles its own shutdown (SIGINT/SIGTERM, a PM2/systemd stop, etc.), call `DataBase.close()` from it before exiting:
 
 ```ts
-import { DataBase } from "@nationdex/db";
 
 process.on("SIGINT", async () => {
-    await DataBase.close();
+    await client.db.close();
     process.exit(0);
 });
 ```
@@ -84,7 +83,7 @@ This isn't wired up automatically — installing process-wide signal handlers is
 
 ## How It Works
 
-`DataBase` (`src/util/database.ts`) wraps a single `PGlite` instance and keeps two tables: `record` (every `$setXVar`-style variable) and `cooldown`. All ~70 ForgeScript functions in `src/functions/` go through this one static facade, so nothing outside `database.ts` needs to know that Postgres — not a remote server, a WASM build running inside your own process — is what's underneath.
+`DataBase` (`src/util/database.ts`) wraps a single `PGlite` instance and stores variables, cooldowns, suggestions, and votes. All ~70 ForgeScript functions in `src/functions/` go through this one static facade, so nothing outside `database.ts` needs to know that Postgres — not a remote server, a WASM build running inside your own process — is what's underneath.
 
 ---
 

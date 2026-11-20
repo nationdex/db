@@ -1,8 +1,16 @@
 import { PGlite } from "@electric-sql/pglite"
-import type { TypedEmitter } from "tiny-typed-emitter"
-import type { TransformEvents } from ".."
+import type { EventEmitter } from "node:events"
 import type { IDBEvents } from "../structures"
-import type { CooldownRecord, DBRecord, GuildData, IDataBaseOptions, RecordData } from "./types"
+import type {
+    CooldownRecord,
+    DBRecord,
+    GuildData,
+    IDataBaseOptions,
+    RecordData,
+    SuggestionData,
+    SuggestionRecord,
+    SuggestionUpdateData,
+} from "./types"
 
 function isGuildData(data: RecordData): data is GuildData {
     return ["member", "channel", "role"].includes(data.type!)
@@ -48,6 +56,24 @@ function rowToCooldown(row: any): CooldownRecord | null {
     }
 }
 
+function rowToSuggestion(row: any): SuggestionRecord | null {
+    if (!row) return null
+    return {
+        id: Number(row.id),
+        type: row.type,
+        submitterId: row.submitter_id,
+        status: row.status,
+        fields: typeof row.fields === "string" ? JSON.parse(row.fields) : row.fields,
+        imageUrl: row.image_url ?? undefined,
+        altImageUrl: row.alt_image_url ?? undefined,
+        messageId: row.message_id ?? undefined,
+        channelId: row.channel_id ?? undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        voteCount: Number(row.vote_count ?? 0),
+    }
+}
+
 /**
  * Static facade backed by an embedded PGlite (WASM Postgres) instance.
  *
@@ -55,7 +81,7 @@ function rowToCooldown(row: any): CooldownRecord | null {
  */
 export class DataBase {
     private static pg: PGlite
-    private static emitter: TypedEmitter<TransformEvents<IDBEvents>>
+    private static emitter: EventEmitter<IDBEvents>
 
     /**
      * Resolves once PGlite has booted and the schema exists. Every other static
@@ -66,7 +92,7 @@ export class DataBase {
     private static ready: Promise<void> = Promise.resolve()
 
     constructor(
-        private emitter: TypedEmitter<TransformEvents<IDBEvents>>,
+        private emitter: EventEmitter<IDBEvents>,
         private options?: IDataBaseOptions
     ) {}
 
@@ -95,6 +121,24 @@ export class DataBase {
                 id TEXT,
                 started_at TEXT NOT NULL,
                 duration BIGINT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS suggestion (
+                id SERIAL PRIMARY KEY,
+                type TEXT NOT NULL,
+                submitter_id TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                fields JSONB NOT NULL,
+                image_url TEXT,
+                alt_image_url TEXT,
+                message_id TEXT,
+                channel_id TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+            CREATE TABLE IF NOT EXISTS suggestion_vote (
+                suggestion_id INTEGER NOT NULL REFERENCES suggestion(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL,
+                PRIMARY KEY (suggestion_id, user_id)
             );
         `)
 
@@ -222,5 +266,108 @@ export class DataBase {
     public static async query(query: string) {
         await this.ready
         return await this.pg.query(query)
+    }
+
+    private static readonly SUGGESTION_SELECT = `
+        SELECT s.*, COUNT(v.user_id) AS vote_count
+        FROM suggestion s
+        LEFT JOIN suggestion_vote v ON v.suggestion_id = s.id
+    `
+
+    public static async createSuggestion(data: SuggestionData): Promise<SuggestionRecord> {
+        await this.ready
+        const res = await this.pg.query<any>(
+            `INSERT INTO suggestion (type, submitter_id, fields, image_url, alt_image_url)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING *, 0 AS vote_count`,
+            [data.type, data.submitterId, JSON.stringify(data.fields), data.imageUrl ?? null, data.altImageUrl ?? null]
+        )
+        return rowToSuggestion(res.rows[0])!
+    }
+
+    public static async getSuggestion(id: number): Promise<SuggestionRecord | null> {
+        await this.ready
+        const res = await this.pg.query<any>(`${this.SUGGESTION_SELECT} WHERE s.id = $1 GROUP BY s.id`, [id])
+        return rowToSuggestion(res.rows[0])
+    }
+
+    public static async listSuggestions(filter: { type?: string; status?: string } = {}): Promise<SuggestionRecord[]> {
+        await this.ready
+        const conditions: string[] = []
+        const params: unknown[] = []
+        if (filter.type) {
+            params.push(filter.type)
+            conditions.push(`s.type = $${params.length}`)
+        }
+        if (filter.status) {
+            params.push(filter.status)
+            conditions.push(`s.status = $${params.length}`)
+        }
+        const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
+        const res = await this.pg.query<any>(
+            `${this.SUGGESTION_SELECT} ${where} GROUP BY s.id ORDER BY vote_count DESC, s.created_at ASC`,
+            params
+        )
+        return res.rows.map(rowToSuggestion) as SuggestionRecord[]
+    }
+
+    public static async updateSuggestion(id: number, data: SuggestionUpdateData): Promise<SuggestionRecord | null> {
+        await this.ready
+        const sets: string[] = ["updated_at = now()"]
+        const params: unknown[] = []
+        if (data.status !== undefined) {
+            params.push(data.status)
+            sets.push(`status = $${params.length}`)
+        }
+        if (data.fields !== undefined) {
+            params.push(JSON.stringify(data.fields))
+            sets.push(`fields = $${params.length}`)
+        }
+        if (data.imageUrl !== undefined) {
+            params.push(data.imageUrl)
+            sets.push(`image_url = $${params.length}`)
+        }
+        if (data.altImageUrl !== undefined) {
+            params.push(data.altImageUrl)
+            sets.push(`alt_image_url = $${params.length}`)
+        }
+        if (data.messageId !== undefined) {
+            params.push(data.messageId)
+            sets.push(`message_id = $${params.length}`)
+        }
+        if (data.channelId !== undefined) {
+            params.push(data.channelId)
+            sets.push(`channel_id = $${params.length}`)
+        }
+        params.push(id)
+        await this.pg.query(`UPDATE suggestion SET ${sets.join(", ")} WHERE id = $${params.length}`, params)
+        return this.getSuggestion(id)
+    }
+
+    public static async deleteSuggestion(id: number) {
+        await this.ready
+        await this.pg.query("DELETE FROM suggestion WHERE id = $1", [id])
+    }
+
+    public static async addSuggestionVote(suggestionId: number, userId: string) {
+        await this.ready
+        await this.pg.query(
+            "INSERT INTO suggestion_vote (suggestion_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            [suggestionId, userId]
+        )
+    }
+
+    public static async removeSuggestionVote(suggestionId: number, userId: string) {
+        await this.ready
+        await this.pg.query("DELETE FROM suggestion_vote WHERE suggestion_id = $1 AND user_id = $2", [suggestionId, userId])
+    }
+
+    public static async hasVotedSuggestion(suggestionId: number, userId: string): Promise<boolean> {
+        await this.ready
+        const res = await this.pg.query<any>(
+            "SELECT 1 FROM suggestion_vote WHERE suggestion_id = $1 AND user_id = $2",
+            [suggestionId, userId]
+        )
+        return res.rows.length > 0
     }
 }

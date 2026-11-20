@@ -1,49 +1,45 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DB = void 0;
-const forgescript_1 = require("@tryforge/forgescript");
-const util_1 = require("./util");
-const structures_1 = require("./structures");
-const tiny_typed_emitter_1 = require("tiny-typed-emitter");
-class DB extends forgescript_1.ForgeExtension {
-    options;
-    static defaults;
-    name = "db";
-    description = "A fast and reliable database extension for ForgeScript.";
-    version = require("../package.json").version;
-    commands;
-    emitter = new tiny_typed_emitter_1.TypedEmitter();
-    constructor(options) {
-        super();
-        this.options = options;
+import { Compiler, EventManager, ForgeExtension } from "@tryforge/forgescript";
+import { DataBase } from "./util";
+import { DBCommandManager } from "./structures";
+import { EventEmitter } from "node:events";
+import { version } from "../package.json";
+
+export class DB extends ForgeExtension {
+  options;
+  static defaults;
+  name = "db";
+  description = "A fast and reliable database extension for ForgeScript.";
+  version = version;
+  commands;
+  emitter = new EventEmitter;
+  constructor(options) {
+    super();
+    this.options = options;
+  }
+  init(client) {
+    this.commands = new DBCommandManager(client);
+    EventManager.load("DBEvents", import.meta.dir + "/events");
+    this.load(import.meta.dir + "/functions");
+    new DataBase(this.emitter, this.options).init().catch((err) => console.error("[db] Failed to initialize database:", err));
+    client.db = DataBase;
+    if (this.options?.events?.length)
+      client.events.load("DBEvents", this.options.events);
+  }
+  variables(rec) {
+    DB.variables(rec);
+  }
+  static variables(rec) {
+    DB.defaults = DB.compileVariables(rec);
+  }
+  static compileVariables(rec) {
+    const obj = {};
+    for (const [key, value] of Object.entries(rec)) {
+      if (typeof value === "string") {
+        obj[key] = Compiler.compile(value);
+      } else {
+        obj[key] = value;
+      }
     }
-    init(client) {
-        this.commands = new structures_1.DBCommandManager(client);
-        forgescript_1.EventManager.load('DBEvents', __dirname + '/events');
-        this.load(__dirname + "/functions");
-        new util_1.DataBase(this.emitter, this.options).init().catch((err) => console.error("[db] Failed to initialize database:", err));
-        client.db = util_1.DataBase;
-        if (this.options?.events?.length)
-            client.events.load("DBEvents", this.options.events);
-    }
-    variables(rec) {
-        DB.variables(rec);
-    }
-    static variables(rec) {
-        DB.defaults = DB.compileVariables(rec);
-    }
-    static compileVariables(rec) {
-        const obj = {};
-        for (const [key, value] of Object.entries(rec)) {
-            if (typeof value === "string") {
-                obj[key] = forgescript_1.Compiler.compile(value);
-            }
-            else {
-                obj[key] = value;
-            }
-        }
-        return obj;
-    }
+    return obj;
+  }
 }
-exports.DB = DB;
-//# sourceMappingURL=index.js.map

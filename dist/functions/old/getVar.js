@@ -1,64 +1,59 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
-const __1 = require("../..");
-const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
-    name: "$getVar",
-    version: "1.0.0",
-    description: "Returns an identifier's value in a variable",
-    output: forgescript_1.ArgType.Unknown,
-    unwrap: true,
-    args: [
-        {
-            name: "name",
-            description: "The name of the variable",
-            rest: false,
-            type: forgescript_1.ArgType.String,
-            required: true,
-        },
-        {
-            name: "id",
-            description: "The identifier of the value (a user, guild, channel, message, etc)",
-            rest: false,
-            type: forgescript_1.ArgType.String,
-            required: true,
-        },
-        {
-            name: "default",
-            description: "The default value if the identifier doesn't exist in the variable",
-            rest: false,
-            required: false,
-            type: forgescript_1.ArgType.String,
-        },
-    ],
-    brackets: true,
-    async execute(ctx, [name, id, def]) {
-        const data = await util_1.DataBase.get({
-            type: "old",
-            id,
-            name,
-        }).then((x) => x?.value);
-        if (data === null || data === undefined) {
-            if (def)
-                return this.successJSON(def);
-            else if (__1.DB.defaults && name in __1.DB.defaults) {
-                const defData = __1.DB.defaults[name];
-                if ("functions" in defData) {
-                    const d = defData;
-                    // Run
-                    const result = await forgescript_1.Interpreter.run(ctx.clone({
-                        data: d,
-                        doNotSend: true,
-                        redirectErrorsToConsole: true,
-                    }));
-                    return result === null ? this.stop() : this.successJSON(result);
-                }
-                else
-                    return this.successJSON(defData);
-            }
-        }
-        return this.successJSON(data);
+import { ArgType, Interpreter, NativeFunction } from "@tryforge/forgescript";
+import { DB } from "../..";
+import { DataBase } from "../../util";
+export default new NativeFunction({
+  name: "$getVar",
+  version: "1.0.0",
+  description: "Returns an identifier's value in a variable",
+  output: ArgType.Unknown,
+  unwrap: true,
+  args: [
+    {
+      name: "name",
+      description: "The name of the variable",
+      rest: false,
+      type: ArgType.String,
+      required: true
     },
+    {
+      name: "id",
+      description: "The identifier of the value (a user, guild, channel, message, etc)",
+      rest: false,
+      type: ArgType.String,
+      required: true
+    },
+    {
+      name: "default",
+      description: "The default value if the identifier doesn't exist in the variable",
+      rest: false,
+      required: false,
+      type: ArgType.String
+    }
+  ],
+  brackets: true,
+  async execute(ctx, [name, id, def]) {
+    const data = await DataBase.get({
+      type: "old",
+      id,
+      name
+    }).then((x) => x?.value);
+    if (data === null || data === undefined) {
+      if (def)
+        return this.successJSON(def);
+      else if (DB.defaults && name in DB.defaults) {
+        const defData = DB.defaults[name];
+        if ("functions" in defData) {
+          const d = defData;
+          const result = await Interpreter.run(ctx.clone({
+            data: d,
+            doNotSend: true,
+            redirectErrorsToConsole: true
+          }));
+          return result === null ? this.stop() : this.successJSON(result);
+        } else
+          return this.successJSON(defData);
+      }
+    }
+    return this.successJSON(data);
+  }
 });
-//# sourceMappingURL=getVar.js.map

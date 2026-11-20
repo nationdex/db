@@ -39,7 +39,7 @@ export type BaseData = {
     value?: string
 }
 
-export type GuildData = BaseData & { type?: "member" | "channel" | "role"; guildId: string }
+export type GuildData = BaseData & { type?: "member" | "channel" | "role"; guildId?: string }
 export type NonGuildData = BaseData & { type?: "user" | "message" | "custom" | "guild" | "old" }
 
 export type RecordData = BaseData & (GuildData | NonGuildData)
@@ -67,4 +67,39 @@ export type CooldownData = {
     id?: string
     startedAt?: string
     duration?: number
+}
+
+export type SuggestionType = "nation" | "countryball" | "feature"
+export type SuggestionStatus = "pending" | "approved" | "denied" | "changes_requested"
+
+export type SuggestionData = {
+    type: SuggestionType
+    submitterId: string
+    fields: Record<string, unknown>
+    imageUrl?: string
+    altImageUrl?: string
+}
+
+export type SuggestionUpdateData = {
+    status?: SuggestionStatus
+    fields?: Record<string, unknown>
+    imageUrl?: string
+    altImageUrl?: string
+    messageId?: string
+    channelId?: string
+}
+
+export interface SuggestionRecord {
+    id: number
+    type: SuggestionType
+    submitterId: string
+    status: SuggestionStatus
+    fields: Record<string, unknown>
+    imageUrl?: string
+    altImageUrl?: string
+    messageId?: string
+    channelId?: string
+    createdAt: string
+    updatedAt: string
+    voteCount: number
 }

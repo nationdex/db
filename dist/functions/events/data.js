@@ -1,26 +1,22 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const forgescript_1 = require("@tryforge/forgescript");
-const util_1 = require("../../util");
-exports.default = new forgescript_1.NativeFunction({
-    name: "$data",
-    version: "2.0.0",
-    description: "Retrieves data that has been set or deleted for a record during create and delete events",
-    unwrap: true,
-    args: [
-        {
-            name: "type",
-            description: "The type of data you want to retrieve",
-            rest: false,
-            type: forgescript_1.ArgType.Enum,
-            enum: util_1.DataType,
-            required: true,
-        },
-    ],
-    brackets: true,
-    async execute(ctx, [type]) {
-        //@ts-ignore
-        return this.success(ctx.runtime.extras.data[util_1.DataType[type].toString()]);
-    },
+import { ArgType, NativeFunction } from "@tryforge/forgescript";
+import { DataType } from "../../util";
+export default new NativeFunction({
+  name: "$data",
+  version: "2.0.0",
+  description: "Retrieves data that has been set or deleted for a record during create and delete events",
+  unwrap: true,
+  args: [
+    {
+      name: "type",
+      description: "The type of data you want to retrieve",
+      rest: false,
+      type: ArgType.Enum,
+      enum: DataType,
+      required: true
+    }
+  ],
+  brackets: true,
+  async execute(ctx, [type]) {
+    return this.success(ctx.runtime.extras.data[DataType[type].toString()]);
+  }
 });
-//# sourceMappingURL=data.js.map

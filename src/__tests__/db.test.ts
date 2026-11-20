@@ -1,22 +1,21 @@
 import assert from "node:assert"
 import fs from "node:fs"
 import path from "node:path"
-import { after, before, describe, it } from "node:test"
-import { TypedEmitter } from "tiny-typed-emitter"
-import type { TransformEvents } from ".."
+import { afterAll, beforeAll, describe, it } from "bun:test"
+import { EventEmitter } from "node:events"
 import type { IDBEvents } from "../structures"
 import { DataBase } from "../util/database"
 
 describe("ForgeDB (PGlite) CRUD Suite", () => {
     const testDbFolder = path.resolve(process.cwd(), "test-database")
-    const emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+    const emitter = new EventEmitter<IDBEvents>()
 
-    before(async () => {
+    beforeAll(async () => {
         const db = new DataBase(emitter, { folder: testDbFolder })
         await db.init()
     })
 
-    after(() => {
+    afterAll(() => {
         try {
             if (fs.existsSync(testDbFolder)) {
                 fs.rmSync(testDbFolder, { recursive: true, force: true })
@@ -115,7 +114,7 @@ describe("ForgeDB (PGlite) CRUD Suite", () => {
 describe("ForgeDB (PGlite) initialization & lifecycle", () => {
     it("queues calls made before init() resolves instead of throwing", async () => {
         const folder = path.resolve(process.cwd(), "test-database-race")
-        const emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+        const emitter = new EventEmitter<IDBEvents>()
         const db = new DataBase(emitter, { folder })
 
         const initPromise = db.init()
@@ -133,7 +132,7 @@ describe("ForgeDB (PGlite) initialization & lifecycle", () => {
     })
 
     it("close() flushes and shuts down cleanly", async () => {
-        const emitter = new TypedEmitter<TransformEvents<IDBEvents>>()
+        const emitter = new EventEmitter<IDBEvents>()
         const db = new DataBase(emitter, { memory: true })
         await db.init()
         await DataBase.set({ type: "user", name: "tmp", id: "u1", value: "1" })

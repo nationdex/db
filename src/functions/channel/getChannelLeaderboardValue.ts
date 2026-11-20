@@ -1,5 +1,4 @@
 import { ArgType, NativeFunction } from "@tryforge/forgescript"
-import { BaseGuildTextChannel } from "discord.js"
 import { DataBase, SortType } from "../../util"
 
 export default new NativeFunction({
@@ -34,7 +33,7 @@ export default new NativeFunction({
     ],
     brackets: true,
     async execute(ctx, [name, sortType, channel]) {
-        const data = await DataBase.find({ name, type: "channel", guildId: (channel as BaseGuildTextChannel)?.guild.id ?? ctx.guild?.id })
+        const data = await DataBase.find({ name, type: "channel", guildId: (channel && "guildId" in channel && typeof channel.guildId === "string" ? channel.guildId : undefined) ?? ctx.guild?.id })
         const index = data.sort((x, y) => (sortType === SortType.asc ? Number(x.value) - Number(y.value) : Number(y.value) - Number(x.value))).findIndex((s) => s.id === (channel ?? ctx.channel?.id))
         return this.success(index + 1)
     },
